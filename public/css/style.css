@@ -1,0 +1,376 @@
+/* Reset basic styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f4ff;
+    overflow-x: hidden;
+}
+
+/* Sidebar container styling */
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    background-color: #2b2f42; /* Darker modern background */
+    color: white;
+    position: fixed;
+    top: 0;
+    left: 0;
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+    box-shadow: 3px 0 10px rgba(0, 0, 0, 0.3); /* Smooth shadow */
+    transition: all 0.3s ease; /* Smooth transition */
+    z-index: 1000;
+}
+
+/* Sidebar hidden state */
+.sidebar.hidden {
+    left: -250px; /* Move the sidebar off-screen */
+}
+
+/* Sidebar logo */
+.sidebar .logo {
+    padding: 20px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #4A6CF7; /* Different background for logo */
+    border-top-right-radius: 20px;
+}
+
+/* Sidebar list styling */
+.sidebar ul {
+    list-style: none;
+    padding: 20px 0;
+}
+
+.sidebar ul li {
+    padding: 10px 20px;
+    margin: 10px 0;
+}
+
+.sidebar ul li a {
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    transition: padding-left 0.3s ease, background-color 0.3s ease;
+    border-radius: 10px;
+}
+
+.sidebar ul li a:hover {
+    background-color: #3f4d6b; /* Subtle hover effect */
+    padding-left: 30px; /* Indentation effect on hover */
+}
+
+.sidebar ul li a i {
+    margin-right: 10px;
+    font-size: 20px; /* Adjust icon size */
+}
+
+/* Hamburger menu button styling */
+.toggle-btn {
+    font-size: 30px;
+    position: fixed;
+    top: 20px;
+    left: 270px; /* Aligns with sidebar width */
+    cursor: pointer;
+    transition: left 0.3s ease;
+    z-index: 1001; /* Ensure it's above other content */
+}
+
+/* Adjust the hamburger menu when the sidebar is hidden */
+.sidebar.hidden + .toggle-btn {
+    left: 20px; /* Move the hamburger icon closer when sidebar is hidden */
+}
+
+/* Main content styling */
+.main-content {
+    margin-left: 270px; /* This should match the sidebar width */
+    transition: margin-left 0.3s ease;
+}
+
+.main-content.expanded {
+    margin-left: 0; /* When the sidebar is hidden, the content shifts left */
+}
+
+/* General card styling for content */
+.card {
+    background-color: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Soft shadow */
+    width: 100%;
+    max-width: 600px; /* Limit the card width */
+    margin: 20px auto;
+    transition: all 0.3s ease; /* Smooth transition on hover */
+}
+
+.card:hover {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15); /* Stronger shadow on hover */
+    transform: translateY(-5px); /* Lift effect */
+}
+
+/* Input and form button styling */
+form input, form textarea {
+    width: 100%;
+    max-width: 500px;
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transition: all 0.3s ease;
+}
+
+form input:focus, form textarea:focus {
+    border-color: #4A6CF7;
+    box-shadow: 0 5px 12px rgba(74, 108, 247, 0.2);
+    outline: none;
+}
+
+form button {
+    background-color: #4A6CF7;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+form button:hover {
+    background-color: #3f5bcc;
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Styling for chat input */
+.chat-input-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.chat-input-container input {
+    flex: 1;
+}
+
+.chat-input-container button {
+    flex-shrink: 0;
+}
+
+/* Dashboard container */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Responsive sidebar for smaller screens */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 200px;
+    }
+
+    .toggle-btn {
+        left: 210px;
+    }
+
+    /* Optional: Sidebar hidden by default on smaller screens */
+    .sidebar {
+        display: none;
+        position: fixed;
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+
+    .toggle-btn {
+        display: block;
+    }
+}
+
+/* Extra margin above the dashboard preview */
+.dashboard-container h1 {
+    margin-top: 50px;
+}
+
+/* ChatGPT page specific styling */
+.chat-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh; /* Make sure content is vertically centered */
+}
+
+.card {
+    background-color: white;
+    padding: 40px;
+    border-radius: 12px; /* Larger border-radius for a modern look */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Larger shadow for elevation */
+    width: 100%;
+    max-width: 600px; /* Limit the width of form containers */
+    margin: 20px auto; /* Center the cards */
+    transition: all 0.3s ease; /* Smooth transition on hover */
+}
+
+.card:hover {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15); /* Slightly stronger shadow on hover */
+    transform: translateY(-5px); /* Slight lift effect */
+}
+
+/* Notifications container styling */
+.notifications-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    margin-top: 50px;
+}
+
+#notifications p {
+    font-size: 16px;
+    background-color: #e9f1ff;
+    padding: 15px;
+    margin-bottom: 10px; /* Add margin between notifications */
+    border-radius: 8px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.notification-item {
+    background-color: #e9f1ff;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.5s ease-in-out;
+    border: 1px solid #ccc; /* Add this to make sure the notification is visible */
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Optional: Initial sidebar hidden on smaller screens */
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+        width: 250px;
+        position: fixed;
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+
+    .toggle-btn {
+        display: block;
+    }
+}
+
+/* Chat container adjustments */
+.chat-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh; /* Ensures the card is vertically centered */
+}
+
+.card {
+    background-color: white;
+    padding: 40px;
+    border-radius: 12px; /* Larger border-radius for a modern look */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Larger shadow for elevation */
+    width: 100%;
+    max-width: 600px; /* Limit the width of form containers */
+    margin: 20px auto; /* Center the cards */
+    transition: all 0.3s ease; /* Smooth transition on hover */
+}
+
+.card:hover {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15); /* Slightly stronger shadow on hover */
+    transform: translateY(-5px); /* Slight lift effect */
+}
+
+/* Styling for the input field and button */
+.chat-input-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.chat-input-container input {
+    flex: 1;
+    padding: 12px; /* Add padding for better readability */
+    border: 1px solid #ddd;
+    border-radius: 8px; /* Rounded corners for smoothness */
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transition: all 0.3s ease;
+}
+
+.chat-input-container input:focus {
+    border-color: #4A6CF7; /* Change border color on focus */
+    box-shadow: 0 5px 12px rgba(74, 108, 247, 0.2); /* Stronger shadow on focus */
+    outline: none;
+}
+
+.chat-input-container button {
+    background-color: #4A6CF7;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px; /* Smooth rounded corners */
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.chat-input-container button:hover {
+    background-color: #3f5bcc; /* Darker button on hover */
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2); /* Stronger shadow on hover */
+}
+
+/* Main content adjustments */
+.main-content {
+    margin-left: 250px; /* Align the content when the sidebar is visible */
+    transition: margin-left 0.3s ease; /* Smooth transition */
+}
+
+.main-content.expanded {
+    margin-left: 0; /* When sidebar is hidden */
+}
+
+/* Responsive sidebar for smaller screens */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 200px;
+    }
+
+    .toggle-btn {
+        left: 210px;
+    }
+
+    .main-content {
+        margin-left: 200px; /* Adjust main content for smaller screens */
+    }
+}
+
