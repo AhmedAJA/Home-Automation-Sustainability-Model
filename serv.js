@@ -1,27 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const mysql = require('mysql2');
 
 const app = express();
+
+// Load environment variables
 const port = process.env.PORT || 3000;
-
-// Set up the MySQL connection using environment variables
-const db = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-});
-
-// Connect to MySQL
-db.connect((err) => {
-  if (err) {
-    console.error('Database connection failed:', err.stack);
-    return;
-  }
-  console.log('Connected to MySQL database');
-});
 
 // Set up the view engine and the path for EJS templates
 app.set('view engine', 'ejs');
@@ -53,51 +37,10 @@ app.get('/chat', (req, res) => {
   res.render('chat', { title: 'Chat with ChatGPT' });
 });
 
-// Dashboard Route with Database Query
+// Dashboard Route
 app.get('/dashboard', (req, res) => {
-  const readingsQuery = `
-    SELECT 
-      ReadingID, 
-      RoomID, 
-      SensorID, 
-      Time, 
-      ReadingType, 
-      Value 
-    FROM 
-      reading 
-    ORDER BY 
-      Time
-  `;
-
-  const roomsQuery = `SELECT RoomID, RoomNumber FROM room`;
-
-  db.query(roomsQuery, (err, rooms) => {
-    if (err) {
-      console.error('Error fetching rooms:', err);
-      return res.status(500).send('Database error');
-    }
-
-    db.query(readingsQuery, (err, readings) => {
-      if (err) {
-        console.error('Error fetching readings:', err);
-        return res.status(500).send('Database error');
-      }
-
-      // Debugging output
-      console.log('Rooms data:', rooms);
-      console.log('Readings data:', readings);
-
-      // Render dashboard with both rooms and sensor data
-      res.render('dashboard', { 
-        title: 'Dashboard', 
-        rooms: rooms,
-        sensorData: readings
-      });
-    });
-  });
+  res.render('dashboard', { title: 'Dashboard' });
 });
-
-
 
 // Notifications Route
 app.get('/notifications', (req, res) => {

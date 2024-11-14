@@ -1,143 +1,64 @@
-// app.js
-
-// Energy Usage Line Chart (using Chart.js)
-const energyCtx = document.getElementById('energyChart').getContext('2d');
-const energyChart = new Chart(energyCtx, {
-    type: 'line',
-    data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        datasets: [{
-            label: 'Energy Usage (kWh)',
-            data: [1200, 1500, 1300, 1700, 1400, 1600],
-            borderColor: 'rgba(75, 192, 192, 1)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            fill: true,
-        }]
-    },
-    options: {
-        scales: {
-            y: {
-                beginAtZero: true
-            }
-        }
+document.addEventListener('DOMContentLoaded', function () {
+    // Only start generating notifications if the notifications area exists
+    if (document.getElementById('notifications')) {
+        startGeneratingNotifications();
+    } else {
+        console.warn("Notification area not found in the DOM");
     }
 });
 
-// Waste Reduction Bar Chart (using Chart.js)
-const wasteCtx = document.getElementById('wasteChart').getContext('2d');
-const wasteChart = new Chart(wasteCtx, {
-    type: 'bar',
-    data: {
-        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-        datasets: [{
-            label: 'Waste Reduced (kg)',
-            data: [200, 250, 230, 270],
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-            borderColor: 'rgba(255, 99, 132, 1)',
-            borderWidth: 1
-        }]
-    },
-    options: {
-        scales: {
-            y: {
-                beginAtZero: true
-            }
-        }
-    }
-});
-
-// Simulated ChatGPT Response Functionality
-function askChatGPT() {
-    const userInput = document.getElementById('userInput').value;
-    const chatResponse = document.getElementById('chatResponse');
-
-    // Simulated response for now
-    if (userInput.trim() === "") {
-        chatResponse.innerText = "Please enter a question.";
-    } else {
-        chatResponse.innerText = `ChatGPT says: "Based on your home data, you can reduce your energy consumption by adjusting your thermostat to a more efficient level."`;
-    }
-}
-
-// Toggle the Sidebar Visibility
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('main-content');
-    const toggleBtn = document.querySelector('.toggle-btn');
-
-    // Log to check if function is being called
-    console.log('Toggle button clicked');
-
-    // Toggle sidebar visibility using the 'hidden' class
-    sidebar.classList.toggle('hidden');
-
-    // Adjust the main content margin and button position
-    if (sidebar.classList.contains('hidden')) {
-        mainContent.style.marginLeft = '0';  // Content fills the screen
-        toggleBtn.style.left = '20px';  // Move the toggle button back
-    } else {
-        mainContent.style.marginLeft = '250px';  // Content is pushed right
-        toggleBtn.style.left = '270px';  // Align button with the sidebar
-    }
-}
-
-// Array of AI-generated notifications
 const notifications = [
-    "Consider reducing your thermostat by 2 degrees to save 10% on your energy bill.",
-    "AI suggests turning off unused devices to save up to 15% on power usage.",
-    "Switch to energy-efficient LED bulbs to cut down your energy consumption by 25%.",
-    "Schedule your heating system for maintenance to improve efficiency and reduce energy costs.",
-    "AI recommends using smart plugs to monitor and control energy usage from your smartphone.",
-    "Closing your blinds during the hottest part of the day can reduce the need for air conditioning.",
-    "AI suggests upgrading your home insulation to save up to 30% on heating costs.",
-    "Set timers on lights to reduce energy consumption in unoccupied rooms.",
+    "Reduce thermostat by 2°C for 10% energy savings.",
+    "Switch off unused devices to save 15% on power.",
+    "Install LED bulbs to save on energy consumption.",
+    "Schedule heating system maintenance to improve efficiency.",
+    "Use smart plugs to control devices remotely.",
+    "Close blinds during peak sun hours to reduce cooling costs.",
+    "Upgrade insulation to save up to 30% on heating."
 ];
 
-// Function to Generate a Random Notification
+// Function to generate a random notification
 function generateNotification() {
-    const randomNotification = notifications[Math.floor(Math.random() * notifications.length)];
+    const notificationArea = document.getElementById('notifications');
     
-    // Create a new notification element
+    // Check if the notifications element exists
+    if (!notificationArea) {
+        console.warn("Notification area not found in the DOM");
+        return;
+    }
+
+    const randomNotification = notifications[Math.floor(Math.random() * notifications.length)];
     const notificationElement = document.createElement('p');
     notificationElement.innerText = randomNotification;
     notificationElement.classList.add('notification-item');
-
-    // Add the notification to the notifications area
-    const notificationArea = document.getElementById('notifications');
+    
     notificationArea.appendChild(notificationElement);
 }
 
-// Function to Generate Multiple Notifications on Page Load and Periodically
+// Function to generate multiple notifications on load and periodically
 function startGeneratingNotifications() {
-    // Generate a few notifications at once on page load
-    for (let i = 0; i < 3; i++) {
+    // Generate a few notifications on page load
+    for (let i = 0; i < 5; i++) {
         generateNotification();
     }
 
     // Generate a new notification every 5 seconds
-    setInterval(generateNotification, 5000);
+    
 }
 
-// Start Generating Notifications when the DOM Content is Fully Loaded
-document.addEventListener('DOMContentLoaded', startGeneratingNotifications);
-
-// Toggle the Sidebar Visibility
+// Toggle sidebar visibility
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('main-content');
     const toggleBtn = document.querySelector('.toggle-btn');
 
-    // Toggle sidebar visibility using the 'hidden' class
     sidebar.classList.toggle('hidden');
 
-    // Adjust the main content margin and button position
     if (sidebar.classList.contains('hidden')) {
-        mainContent.style.marginLeft = '0';  // Content fills the screen
-        toggleBtn.style.left = '20px';  // Move the toggle button back
+        mainContent.style.marginLeft = '0';
+        toggleBtn.style.left = '20px';
     } else {
-        mainContent.style.marginLeft = '250px';  // Content is pushed right
-        toggleBtn.style.left = '270px';  // Align button with the sidebar
+        mainContent.style.marginLeft = '250px';
+        toggleBtn.style.left = '270px';
     }
 }
-
-

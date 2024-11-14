@@ -359,6 +359,163 @@ form button:hover {
     margin-left: 0; /* When sidebar is hidden */
 }
 
+/* Container styling for the room selector */
+.room-selector-container {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    background-color: #ffffff; /* White background for contrast */
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    display: flex;
+    align-items: center;
+}
+
+/* Label styling */
+.room-selector-container label {
+    font-size: 16px;
+    font-weight: 500;
+    margin-right: 10px;
+    color: #333; /* Darker color for readability */
+}
+
+/* Custom styling for the dropdown */
+.room-selector-container select {
+    padding: 5px 10px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #f8f9fa; /* Light background */
+    color: #333; /* Text color */
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Dropdown hover effect */
+.room-selector-container select:hover {
+    border-color: #4A6CF7; /* Accent color for hover */
+}
+
+/* Adjust the room selector container for better positioning */
+.room-selector-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: #ffffff;
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    z-index: 1001; /* Ensure it stays above other elements */
+}
+
+/* Adjust dropdown styling */
+.room-selector-container label {
+    font-size: 16px;
+    font-weight: 500;
+    margin-right: 10px;
+    color: #333;
+}
+
+.room-selector-container select {
+    padding: 5px 10px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    color: #333;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.room-selector-container select:hover {
+    border-color: #4A6CF7;
+}
+
+/* Position the Room Selector Container */
+.room-selector-container {
+    position: fixed; /* Ensure it stays in a fixed spot */
+    top: 20px; /* Adjust to lower or raise */
+    right: 40px; /* Adjust as needed to align it with the right edge */
+    background-color: #ffffff; 
+    padding: 8px 12px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    z-index: 1000; /* Ensures it stays above other content */
+}
+
+/* Label styling */
+.room-selector-container label {
+    font-size: 16px;
+    font-weight: 500;
+    margin-right: 10px;
+    color: #333;
+}
+
+/* Custom styling for the dropdown */
+.room-selector-container select {
+    padding: 5px 10px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Dashboard grid styling to add extra top margin */
+.dashboard-grid {
+    margin-top: 80px; /* Increase this to lower the entire card grid further */
+}
+
+/* Notification container styling */
+.notifications-container {
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #f9f9f9;
+}
+
+/* Notification title styling */
+.notifications-container h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #333;
+}
+
+/* Notification item styling */
+.notification-item {
+    padding: 12px 20px;
+    margin-bottom: 12px;
+    font-size: 1rem;
+    color: #000000;
+    background-color: #4CAF50; /* Green color for notifications */
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+/* Hover effect for notification items */
+.notification-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Alternate background color for variety */
+.notification-item:nth-child(even) {
+    background-color: #3f8f3b;
+}
+
+
 /* Responsive sidebar for smaller screens */
 @media (max-width: 768px) {
     .sidebar {
