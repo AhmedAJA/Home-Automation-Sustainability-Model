@@ -1,63 +1,58 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Parse JSON string into an object
-    const sensorData = JSON.parse(window.sensorData);
+    const sensorData = window.sensorData;
     console.log("Loaded sensorData:", sensorData);
 
-    // Function to filter sensor data by room and type, with explicit date parsing
+    // Helper to display all unique RoomIDs and ReadingTypes
+    const uniqueRoomIDs = [...new Set(sensorData.map(data => data.RoomID))];
+    const uniqueReadingTypes = [...new Set(sensorData.map(data => data.ReadingType))];
+    console.log("Unique RoomIDs:", uniqueRoomIDs);
+    console.log("Unique ReadingTypes:", uniqueReadingTypes);
+
+    // Function to filter sensor data by room and type
     function filterDataByRoomAndType(roomId, readingType) {
         const filteredData = sensorData
             .filter(data => data.RoomID == roomId && data.ReadingType === readingType)
             .map(data => ({
-                x: new Date(data.Time), // Ensure each Time entry is parsed as a Date object
+                x: new Date(data.Time), 
                 y: data.Value
             }));
-
         console.log(`Filtered data for RoomID: ${roomId}, ReadingType: ${readingType}:`, filteredData);
         return filteredData;
     }
 
-    // Function to create a new chart
-    function createChart(canvasId, label, dataPoints) {
-        const ctx = document.getElementById(canvasId).getContext('2d');
-        const chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                datasets: [{
-                    label: label,
-                    data: dataPoints,
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    fill: true,
-                }]
+    // Function to create an ApexChart
+    function createChart(chartId, seriesName, dataPoints) {
+        const options = {
+            chart: {
+                type: 'line',
+                height: 300
             },
-            options: {
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { 
-                            unit: 'day',
-                            tooltipFormat: 'P',
-                        },
-                        adapters: {
-                            date: {
-                                locale: 'en-US', // Explicitly set locale
-                            }
-                        }
-                    },
-                    y: { beginAtZero: true }
-                },
-                plugins: {
-                    legend: {
-                        display: true
-                    }
+            series: [{
+                name: seriesName,
+                data: dataPoints
+            }],
+            xaxis: {
+                type: 'datetime',
+                labels: {
+                    datetimeFormatter: { month: 'MMM', day: 'dd' }
                 }
+            },
+            yaxis: {
+                title: {
+                    text: seriesName
+                }
+            },
+            noData: {
+                text: "No Data Available"
             }
-        });
-        console.log(`Chart created for ${label} with data:`, dataPoints);
+        };
+        
+        const chart = new ApexCharts(document.querySelector(`#${chartId}`), options);
+        chart.render();
         return chart;
     }
 
-    // Initialize charts with data for the first room by default
+    // Initialize charts for the first room by default
     const initialRoomId = document.getElementById('roomSelect').value;
     let pirChart = createChart('pirChart', 'PIR Movement', filterDataByRoomAndType(initialRoomId, 'PIR'));
     let temperatureChart = createChart('temperatureChart', 'Temperature', filterDataByRoomAndType(initialRoomId, 'Temperature'));
@@ -70,20 +65,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedRoom = document.getElementById('roomSelect').value;
         console.log("Selected Room ID:", selectedRoom);
 
-        pirChart.data.datasets[0].data = filterDataByRoomAndType(selectedRoom, 'PIR');
-        pirChart.update();
-
-        temperatureChart.data.datasets[0].data = filterDataByRoomAndType(selectedRoom, 'Temperature');
-        temperatureChart.update();
-
-        humidityChart.data.datasets[0].data = filterDataByRoomAndType(selectedRoom, 'Humidity');
-        humidityChart.update();
-
-        co2Chart.data.datasets[0].data = filterDataByRoomAndType(selectedRoom, 'CO2');
-        co2Chart.update();
-
-        lightChart.data.datasets[0].data = filterDataByRoomAndType(selectedRoom, 'Light');
-        lightChart.update();
+        pirChart.updateSeries([{ data: filterDataByRoomAndType(selectedRoom, 'PIR') }]);
+        temperatureChart.updateSeries([{ data: filterDataByRoomAndType(selectedRoom, 'Temperature') }]);
+        humidityChart.updateSeries([{ data: filterDataByRoomAndType(selectedRoom, 'Humidity') }]);
+        co2Chart.updateSeries([{ data: filterDataByRoomAndType(selectedRoom, 'CO2') }]);
+        lightChart.updateSeries([{ data: filterDataByRoomAndType(selectedRoom, 'Light') }]);
     }
 
     // Attach event listener to room selector

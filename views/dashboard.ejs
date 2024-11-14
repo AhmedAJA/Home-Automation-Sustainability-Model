@@ -6,10 +6,11 @@
     <title>Dashboard - Home Automation</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0"></script> <!-- Date adapter for Chart.js -->
+    <!-- Load ApexCharts library -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </head>
 <body id="dashboard-page">
+    <!-- Sidebar Navigation -->
     <div class="toggle-btn" onclick="toggleSidebar()">&#9776;</div>
 
     <div class="sidebar" id="sidebar">
@@ -26,7 +27,9 @@
         </ul>
     </div>
 
+    <!-- Main Content Area -->
     <div class="main-content" id="main-content">
+        <!-- Room Selector Dropdown -->
         <div class="room-selector-container">
             <label for="roomSelect">Select Room:</label>
             <select id="roomSelect">
@@ -36,35 +39,39 @@
             </select>
         </div>
 
+        <!-- Charts Grid Layout -->
         <div class="dashboard-grid">
             <div class="card">
                 <h3>PIR Diagram</h3>
-                <canvas id="pirChart"></canvas>
+                <div id="pirChart"></div> <!-- Chart container for PIR data -->
             </div>
             <div class="card">
                 <h3>Temperature Diagram</h3>
-                <canvas id="temperatureChart"></canvas>
+                <div id="temperatureChart"></div> <!-- Chart container for Temperature data -->
             </div>
             <div class="card">
                 <h3>Humidity Diagram</h3>
-                <canvas id="humidityChart"></canvas>
+                <div id="humidityChart"></div> <!-- Chart container for Humidity data -->
             </div>
             <div class="card">
                 <h3>CO2 Diagram</h3>
-                <canvas id="co2Chart"></canvas>
+                <div id="co2Chart"></div> <!-- Chart container for CO2 data -->
             </div>
             <div class="card">
                 <h3>Light Diagram</h3>
-                <canvas id="lightChart"></canvas>
+                <div id="lightChart"></div> <!-- Chart container for Light data -->
             </div>
         </div>
     </div>
 
-    <!-- Pass sensorData to dashboard.js as a JSON string -->
+    <!-- Pass sensorData to JavaScript as a JSON object -->
     <script>
         window.sensorData = <%- JSON.stringify(sensorData) %>;
     </script>
-    <script src="/js/frontend.js"></script>
+
+    <!-- Custom JavaScript files for managing charts and frontend logic -->
     <script src="/js/dashboard.js"></script>
+    <script src="/js/frontend.js"></script>
+
 </body>
 </html>

@@ -83,19 +83,25 @@ app.get('/dashboard', (req, res) => {
         return res.status(500).send('Database error');
       }
 
+      // Get unique RoomIDs from readings to filter rooms
+      const uniqueRoomIDsWithData = [...new Set(readings.map(data => data.RoomID))];
+      const filteredRooms = rooms.filter(room => uniqueRoomIDsWithData.includes(room.RoomID));
+
       // Debugging output
-      console.log('Rooms data:', rooms);
+      console.log('Filtered Rooms with Data:', filteredRooms);
       console.log('Readings data:', readings);
 
-      // Render dashboard with both rooms and sensor data
+      // Render dashboard with filtered rooms and sensor data
       res.render('dashboard', { 
         title: 'Dashboard', 
-        rooms: rooms,
+        rooms: filteredRooms,
         sensorData: readings
       });
     });
   });
 });
+
+
 
 
 
