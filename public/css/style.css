@@ -566,7 +566,7 @@ form button:hover {
 
 /* User message styling */
 .chat-container .message.user {
-    background-color: #4A6CF7;
+    background-color: #e8f4ff;
     color: #ffffff;
     text-align: right;
     margin-left: auto;
