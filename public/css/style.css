@@ -515,6 +515,167 @@ form button:hover {
     background-color: #3f8f3b;
 }
 
+/* Chat box container styling */
+.chat-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh; /* Ensures content is vertically centered */
+}
+
+/* Chat history container for messages */
+.chat-container .chat-history {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); /* More prominent shadow */
+    transition: all 0.3s ease;
+}
+
+/* Scrollbar for chat history */
+.chat-container .chat-history::-webkit-scrollbar {
+    width: 6px;
+}
+.chat-container .chat-history::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 10px;
+}
+.chat-container .chat-history::-webkit-scrollbar-track {
+    background: #f9f9f9;
+}
+
+/* Message styling */
+.chat-container .message {
+    margin: 8px 0;
+    padding: 12px 18px;
+    border-radius: 20px;
+    max-width: 75%;
+    font-size: 16px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    transition: transform 0.2s, opacity 0.3s ease-in-out;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUp 0.4s forwards;
+}
+
+/* User message styling */
+.chat-container .message.user {
+    background-color: #4A6CF7;
+    color: #ffffff;
+    text-align: right;
+    margin-left: auto;
+    border-radius: 20px 20px 0 20px; /* Rounded corners on top-left */
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ChatGPT response styling */
+.chat-container .message.chatgpt {
+    background-color: #e8f4ff;
+    color: #333;
+    text-align: left;
+    margin-right: auto;
+    border-radius: 20px 20px 20px 0; /* Rounded corners on top-right */
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* System message styling (e.g., prompts or errors) */
+.chat-container .message.system {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    font-size: 14px;
+}
+
+/* Chat input container for input and button */
+.chat-container .chat-input-container {
+    display: flex;
+    gap: 10px;
+    padding: 15px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Input field styling */
+.chat-container .chat-input-container input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 16px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.chat-container .chat-input-container input:focus {
+    border-color: #4A6CF7;
+    box-shadow: 0 5px 10px rgba(74, 108, 247, 0.15);
+    outline: none;
+}
+
+/* Button styling */
+.chat-container .chat-input-container button {
+    background-color: #4A6CF7;
+    color: #ffffff;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chat-container .chat-input-container button:hover {
+    background-color: #3f5bcc;
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Animation for message appearance */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .chat-container .chat-history {
+        max-height: 300px;
+    }
+    .chat-container .chat-input-container {
+        padding: 10px;
+    }
+    .chat-container .chat-input-container input {
+        padding: 10px;
+        font-size: 15px;
+    }
+    .chat-container .chat-input-container button {
+        padding: 10px 15px;
+        font-size: 15px;
+    }
+}
+
+.chat-history{
+
+    margin-top: 15px;
+}
+
+
 
 /* Responsive sidebar for smaller screens */
 @media (max-width: 768px) {

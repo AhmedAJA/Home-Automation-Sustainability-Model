@@ -2,9 +2,19 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const mysql = require('mysql2');
+const { Configuration, OpenAIApi } = require('openai');
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Set up the OpenAI API client
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
+
+// In-memory storage for conversation histories (by session or user id)
+const conversationHistories = {};
 
 // Set up the MySQL connection using environment variables
 const db = mysql.createConnection({
@@ -30,7 +40,8 @@ app.set('views', path.join(__dirname, 'views'));
 // Middleware for serving static files (CSS, JavaScript, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Middleware to parse URL-encoded bodies (for form submissions)
+// Middleware to parse JSON and URL-encoded bodies
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Home Route
@@ -51,6 +62,46 @@ app.get('/about', (req, res) => {
 // Chat with ChatGPT Route
 app.get('/chat', (req, res) => {
   res.render('chat', { title: 'Chat with ChatGPT' });
+});
+
+// Route to handle ChatGPT API requests with memory
+app.post('/ask-chatgpt', async (req, res) => {
+  const userId = req.body.userId || "default_user"; // For simplicity, using a single session for now
+  const userInput = req.body.input;
+
+  // Initialize conversation history for the user if it doesn't exist
+  if (!conversationHistories[userId]) {
+    conversationHistories[userId] = [];
+  }
+
+  // Add user's message to conversation history
+  conversationHistories[userId].push({ role: "user", content: userInput });
+
+  try {
+    const response = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: conversationHistories[userId], // Pass conversation history to OpenAI
+      max_tokens: 150,
+      temperature: 0.7,
+    });
+
+    const chatGPTResponse = response.data.choices[0].message.content.trim();
+
+    // Add ChatGPT's response to the conversation history
+    conversationHistories[userId].push({ role: "assistant", content: chatGPTResponse });
+
+    res.json({ response: chatGPTResponse });
+  } catch (error) {
+    console.error('Error calling ChatGPT API:', error);
+    res.status(500).json({ response: 'Sorry, there was an error with the ChatGPT API.' });
+  }
+});
+
+// Optional: Endpoint to clear the conversation history for a user
+app.post('/clear-history', (req, res) => {
+  const userId = req.body.userId || "default_user";
+  conversationHistories[userId] = []; // Clear history for the specified user
+  res.json({ message: 'Conversation history cleared.' });
 });
 
 // Dashboard Route with Database Query
@@ -83,15 +134,10 @@ app.get('/dashboard', (req, res) => {
         return res.status(500).send('Database error');
       }
 
-      // Get unique RoomIDs from readings to filter rooms
+      // Filter rooms that have associated data
       const uniqueRoomIDsWithData = [...new Set(readings.map(data => data.RoomID))];
       const filteredRooms = rooms.filter(room => uniqueRoomIDsWithData.includes(room.RoomID));
 
-      // Debugging output
-      console.log('Filtered Rooms with Data:', filteredRooms);
-      console.log('Readings data:', readings);
-
-      // Render dashboard with filtered rooms and sensor data
       res.render('dashboard', { 
         title: 'Dashboard', 
         rooms: filteredRooms,
@@ -100,10 +146,6 @@ app.get('/dashboard', (req, res) => {
     });
   });
 });
-
-
-
-
 
 // Notifications Route
 app.get('/notifications', (req, res) => {

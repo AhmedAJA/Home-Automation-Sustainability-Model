@@ -24,39 +24,93 @@
         </ul>
     </div>
 
-    <!-- Hamburger menu -->
-    <div class="toggle-btn" onclick="toggleSidebar()">
+     <!-- Hamburger menu -->
+     <div class="toggle-btn" onclick="toggleSidebar()">
         &#9776;
     </div>
-
+    
     <!-- Main content -->
     <div class="main-content" id="main-content">
         <section class="chat-container">
             <div class="card">
                 <h3>Ask ChatGPT for Home Automation Tips</h3>
-                <div class="chat-input-container">
-                    <input type="text" id="userInput" placeholder="Ask ChatGPT..." />
-                    <button onclick="askChatGPT()">Ask</button>
+                <div id="chatHistory" class="chat-history">
+                    <!-- Chat history will be displayed here -->
                 </div>
-                <p id="chatResponse" style="margin-top: 20px;"></p>
+                <div class="chat-input-container">
+                    <input type="text" id="userInput" placeholder="Ask ChatGPT..." aria-label="User input for ChatGPT" />
+                    <button onclick="askChatGPT()" aria-label="Send question to ChatGPT">Ask</button>
+                </div>
             </div>
         </section>
     </div>
 
     <script src="/js/frontend.js"></script>
     <script>
-        // Simulated ChatGPT response function
-        function askChatGPT() {
-            const userInput = document.getElementById('userInput').value;
-            const chatResponse = document.getElementById('chatResponse');
+        // Store conversation history in an array
+        const chatHistory = [];
 
-            // Simulated response for now
+        async function askChatGPT() {
+            const userInput = document.getElementById('userInput').value;
+
             if (userInput.trim() === "") {
-                chatResponse.innerText = "Please enter a question.";
-            } else {
-                chatResponse.innerText = `ChatGPT says: "Based on your home data, you can reduce your energy consumption by adjusting your thermostat to a more efficient level."`;
+                displayMessage("Please enter a question.", "system");
+                return;
+            }
+
+            // Display user's message
+            displayMessage(userInput, "user");
+            document.getElementById('userInput').value = ""; // Clear input
+
+            try {
+                const response = await fetch('/ask-chatgpt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ input: userInput })
+                });
+
+                const data = await response.json();
+                const chatGPTResponse = data.response ? data.response : "No response received from ChatGPT.";
+
+                // Display ChatGPT's response
+                displayMessage(chatGPTResponse, "chatgpt");
+            } catch (error) {
+                console.error('Error fetching response from ChatGPT:', error);
+                displayMessage("Sorry, there was an error communicating with ChatGPT. Please try again later.", "system");
             }
         }
+
+        // Function to display messages in the chat history
+        function displayMessage(text, sender) {
+            const chatHistoryDiv = document.getElementById('chatHistory');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender);
+
+            if (sender === "user") {
+                messageDiv.classList.add('message', 'user');
+                messageDiv.style.textAlign = "right";
+                messageDiv.style.color = "blue";
+            } else if (sender === "chatgpt") {
+                messageDiv.classList.add('message', 'chatgpt');
+                messageDiv.style.textAlign = "left";
+                messageDiv.style.color = "green";
+            } else if (sender === "system") {
+                messageDiv.classList.add('message', 'system');
+                messageDiv.style.textAlign = "center";
+                messageDiv.style.color = "gray";
+            }
+
+            messageDiv.innerText = text;
+            chatHistoryDiv.appendChild(messageDiv);
+
+            // Scroll to the bottom of the chat history
+            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+
+            // Add message to chat history array
+            chatHistory.push({ sender, text });
+        }
     </script>
+    
 </body>
 </html>
