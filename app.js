@@ -148,8 +148,77 @@ app.get('/dashboard', (req, res) => {
 });
 
 // Notifications Route
-app.get('/notifications', (req, res) => {
-  res.render('notifications', { title: 'Notifications' });
+app.get('/notifications', async (req, res) => {
+  const query = `
+      SELECT RoomID, AVG(Value) as AvgValue, MIN(Time) as StartTime, MAX(Time) as EndTime, ReadingType
+      FROM reading
+      GROUP BY RoomID, ReadingType
+      LIMIT 50
+  `;
+
+  db.query(query, async (err, results) => {
+      if (err) {
+          console.error('Error fetching data from the database:', err);
+          return res.status(500).send('Database error');
+      }
+
+      if (results.length === 0) {
+          return res.render('notifications', {
+              title: 'Energy-Saving Notifications and AI Advice',
+              notifications: ["No recent sensor data available for generating recommendations."]
+          });
+      }
+
+      // Prepare the data for ChatGPT
+      const inputData = results.map(row => ({
+        RoomID: row.RoomID,
+        AvgValue: row.AvgValue.toFixed(2), // Format average value
+        ReadingType: row.ReadingType,
+        StartTime: row.StartTime, // Directly use formatted time
+        EndTime: row.EndTime // Directly use formatted time
+    }));
+    
+
+      const prompt = `
+          Based on the following sensor data, generate specific energy-saving recommendations. 
+          Each recommendation must match this format:
+          Room [RoomID]: "[Action] between [Start Time] and [End Time] to [Goal]."
+
+          Example:
+          Room 231: "Turn off lights between 2:05 AM and 3:05 AM to conserve energy."
+          Room 340: "Improve ventilation between 1:00 PM and 3:00 PM to reduce CO2 levels."
+          Room 411: "Lower the thermostat to 21°C between 9:00 AM and 11:00 AM to save energy."
+
+          Data:
+          ${JSON.stringify(inputData)}
+      `;
+
+      try {
+          const response = await openai.createChatCompletion({
+              model: "gpt-3.5-turbo",
+              messages: [
+                  { role: "system", content: "You are an energy management expert for smart homes." },
+                  { role: "user", content: prompt }
+              ],
+              max_tokens: 500,
+              temperature: 0.7
+          });
+
+          // Parse the response and filter valid recommendations
+          const recommendations = response.data.choices[0].message.content
+              .split('\n')
+              .filter(line => line.trim().startsWith('Room')); // Ensure only room-based advice
+
+          // Render the notifications page with generated recommendations
+          res.render('notifications', {
+              title: 'Energy-Saving Notifications and AI Advice',
+              notifications: recommendations
+          });
+      } catch (error) {
+          console.error('Error generating recommendations with ChatGPT:', error);
+          res.status(500).send('Error generating AI advice.');
+      }
+  });
 });
 
 // Login Route
