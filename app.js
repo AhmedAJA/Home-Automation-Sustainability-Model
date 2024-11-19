@@ -147,13 +147,12 @@ app.get('/dashboard', (req, res) => {
   });
 });
 
-// Notifications Route
 app.get('/notifications', async (req, res) => {
   const query = `
-      SELECT RoomID, AVG(Value) as AvgValue, MIN(Time) as StartTime, MAX(Time) as EndTime, ReadingType
+      SELECT RoomID, Value, ReadingType, Time
       FROM reading
-      GROUP BY RoomID, ReadingType
-      LIMIT 50
+      ORDER BY RoomID, Time
+      LIMIT 500
   `;
 
   db.query(query, async (err, results) => {
@@ -165,29 +164,43 @@ app.get('/notifications', async (req, res) => {
       if (results.length === 0) {
           return res.render('notifications', {
               title: 'Energy-Saving Notifications and AI Advice',
-              notifications: ["No recent sensor data available for generating recommendations."]
+              notifications: ["No recent sensor data available for generating recommendations."],
           });
       }
 
-      // Prepare the data for ChatGPT
-      const inputData = results.map(row => ({
-        RoomID: row.RoomID,
-        AvgValue: row.AvgValue.toFixed(2), // Format average value
-        ReadingType: row.ReadingType,
-        StartTime: row.StartTime, // Directly use formatted time
-        EndTime: row.EndTime // Directly use formatted time
-    }));
-    
+      // Group readings by RoomID
+      const groupedData = results.reduce((acc, row) => {
+          if (!acc[row.RoomID]) acc[row.RoomID] = [];
+          acc[row.RoomID].push({
+              Time: row.Time,
+              Value: row.Value.toFixed(2),
+              ReadingType: row.ReadingType,
+          });
+          return acc;
+      }, {});
+
+      // Prepare data for ChatGPT
+      const inputData = Object.entries(groupedData).map(([roomID, readings]) => ({
+          RoomID: roomID,
+          Readings: readings,
+      }));
 
       const prompt = `
-          Based on the following sensor data, generate specific energy-saving recommendations. 
-          Each recommendation must match this format:
-          Room [RoomID]: "[Action] between [Start Time] and [End Time] to [Goal]."
+          You are an energy and environment optimization expert. Based on the following room sensor data, generate dynamic, actionable, and diverse energy-saving recommendations.
 
-          Example:
-          Room 231: "Turn off lights between 2:05 AM and 3:05 AM to conserve energy."
-          Room 340: "Improve ventilation between 1:00 PM and 3:00 PM to reduce CO2 levels."
-          Room 411: "Lower the thermostat to 21°C between 9:00 AM and 11:00 AM to save energy."
+          Avoid repeating similar advice. Be creative, considering the type of sensor readings (e.g., temperature, CO2 levels, humidity) and possible actions specific to home automation systems. Examples of actions might include:
+          - Turning off lights at certain times.
+          - Adjusting thermostats for efficiency.
+          - Opening windows to improve air quality.
+          - Turning off idle electronic devices.
+          - Using smart plugs to cut energy consumption.
+          - You can genrate your advice.
+
+          The advice should be:
+          - Specific to each room.
+          - Based on the sensor readings provided.
+          - In a professional format like this:
+            Room [RoomID]: "[Action] at [Time] on [Date] to [Goal]."
 
           Data:
           ${JSON.stringify(inputData)}
@@ -197,22 +210,21 @@ app.get('/notifications', async (req, res) => {
           const response = await openai.createChatCompletion({
               model: "gpt-3.5-turbo",
               messages: [
-                  { role: "system", content: "You are an energy management expert for smart homes." },
-                  { role: "user", content: prompt }
+                  { role: "system", content: "You are an energy optimization expert." },
+                  { role: "user", content: prompt },
               ],
-              max_tokens: 500,
-              temperature: 0.7
+              max_tokens: 700,
+              temperature: 0.9, // Increase randomness for more diverse suggestions
           });
 
-          // Parse the response and filter valid recommendations
           const recommendations = response.data.choices[0].message.content
               .split('\n')
-              .filter(line => line.trim().startsWith('Room')); // Ensure only room-based advice
+              .filter(line => line.trim().startsWith('Room')); // Filter room-specific recommendations
 
-          // Render the notifications page with generated recommendations
+          // Render notifications page
           res.render('notifications', {
               title: 'Energy-Saving Notifications and AI Advice',
-              notifications: recommendations
+              notifications: recommendations,
           });
       } catch (error) {
           console.error('Error generating recommendations with ChatGPT:', error);
@@ -221,10 +233,28 @@ app.get('/notifications', async (req, res) => {
   });
 });
 
+
+
+
 // Login Route
 app.get('/login', (req, res) => {
   res.render('login', { title: 'Login' });
 });
+
+app.get('/signup', (req, res) => {
+  res.render('signup', { title: 'Signup' });
+});
+
+app.post('/login', (req, res) => {
+  // Login logic here
+  res.redirect('/dashboard');
+});
+
+app.post('/signup', (req, res) => {
+  // Signup logic here
+  res.redirect('/login'); // Redirect back to login after signup
+});
+
 
 // Contact Route
 app.get('/contact', (req, res) => {

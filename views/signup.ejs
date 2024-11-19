@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Us - Home Automation Dashboard</title>
+    <title>Signup - Home Automation Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
@@ -30,29 +30,16 @@
 
     <!-- Main content -->
     <div class="main-content" id="main-content">
-        <section class="about-container">
+        <section class="signup-container">
             <div class="card">
-                <h3>Our Mission</h3>
-                <p>
-                    At Home Automation, we are dedicated to helping homeowners reduce energy consumption 
-                    and improve sustainability through smart home technologies.
-                </p>
-            </div>
-
-            <div class="card">
-                <h3>Our Vision</h3>
-                <p>
-                    Our vision is to revolutionize the way people interact with their homes by creating a sustainable, 
-                    energy-efficient future powered by cutting-edge smart technology.
-                </p>
-            </div>
-
-            <div class="card">
-                <h3>Our Team</h3>
-                <p>
-                    Our team consists of experts in AI, sustainability, and smart home technology, 
-                    committed to bringing you the best solutions for home automation.
-                </p>
+                <h3>Signup</h3>
+                <form method="POST" action="/signup">
+                    <input type="text" name="name" placeholder="Full Name" required />
+                    <input type="email" name="email" placeholder="Email" required />
+                    <input type="password" name="password" placeholder="Password" required />
+                    <button type="submit">Signup</button>
+                </form>
+                <p>Already have an account? <a href="/login" class="login-link">Login</a></p>
             </div>
         </section>
     </div>

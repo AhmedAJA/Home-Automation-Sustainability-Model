@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %> - Home Automation Dashboard</title>
+    <title>Home - Home Automation Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="logo">Home Automation</div>
@@ -31,10 +31,34 @@
 
     <!-- Main content -->
     <div class="main-content" id="main-content">
-        <section class="dashboard">
-            <div class="card">
-                <h3>Welcome to the Home Automation Dashboard</h3>
-                <p>Manage your home’s energy efficiency, waste reduction, and get AI-powered insights for home automation.</p>
+        <section class="home-container">
+            <div class="home-header">
+                <h1>Welcome to Your Smart Home Hub</h1>
+                <p>Effortlessly manage your home's energy efficiency, sustainability, and comfort through advanced AI-powered automation and monitoring tools.</p>
+            </div>
+
+            <div class="home-highlight">
+                <div class="highlight-card">
+                    <i class="fas fa-chart-pie"></i>
+                    <h3>Comprehensive Insights</h3>
+                    <p>Monitor and track your energy usage, environmental impact, and savings in real-time.</p>
+                </div>
+                <div class="highlight-card">
+                    <i class="fas fa-leaf"></i>
+                    <h3>Environmentally Friendly</h3>
+                    <p>Take steps towards a sustainable future with energy-saving recommendations tailored for your home.</p>
+                </div>
+                <div class="highlight-card">
+                    <i class="fas fa-cogs"></i>
+                    <h3>Seamless Automation</h3>
+                    <p>Set up automated schedules and controls to optimize your home's efficiency with ease.</p>
+                </div>
+            </div>
+
+            <div class="cta-section">
+                <h2>Take Control of Your Home</h2>
+                <p>Start your journey to a smarter, more efficient home today. Log in or sign up to get started!</p>
+                <a href="/login" class="cta-button">Get Started</a>
             </div>
         </section>
     </div>

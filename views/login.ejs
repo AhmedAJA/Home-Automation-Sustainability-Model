@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %> - Home Automation Dashboard</title>
+    <title>Login - Home Automation Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
-
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="logo">Home Automation</div>
@@ -18,7 +17,7 @@
             <li><a href="/chat"><i class="fas fa-comments"></i> Chat with ChatGPT</a></li>
             <li><a href="/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a></li>
             <li><a href="/notifications"><i class="fas fa-bell"></i> Notifications</a></li>
-            <li><a href="/login"><i class="fas fa-user"></i> Login/Signup</a></li>
+            <li><a href="/login"><i class="fas fa-user"></i> Login</a></li>
             <li><a href="/about"><i class="fas fa-info-circle"></i> About Us</a></li>
             <li><a href="/contact"><i class="fas fa-envelope"></i> Contact Us</a></li>
         </ul>
@@ -31,7 +30,7 @@
 
     <!-- Main content -->
     <div class="main-content" id="main-content">
-        <section class="login-signup-container">
+        <section class="login-container">
             <div class="card">
                 <h3>Login</h3>
                 <form method="POST" action="/login">
@@ -39,15 +38,7 @@
                     <input type="password" name="password" placeholder="Password" required />
                     <button type="submit">Login</button>
                 </form>
-            </div>
-
-            <div class="card">
-                <h3>Signup</h3>
-                <form method="POST" action="/signup">
-                    <input type="email" name="email" placeholder="Email" required />
-                    <input type="password" name="password" placeholder="Password" required />
-                    <button type="submit">Signup</button>
-                </form>
+                <p>Don't have an account? <a href="/signup" class="signup-link">Create an Account</a></p>
             </div>
         </section>
     </div>
