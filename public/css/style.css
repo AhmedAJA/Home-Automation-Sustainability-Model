@@ -936,4 +936,39 @@ form button:hover {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
+/* Style for the dropdown label */
+label {
+    display: block;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    color: #444;
+}
+
+/* Style for the dropdown menu */
+#advice-group {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px 15px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    color: #333;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+/* Change appearance when dropdown is focused */
+#advice-group:focus {
+    border-color: #007bff;
+    box-shadow: 0 4px 6px rgba(0, 123, 255, 0.3);
+    outline: none;
+    background-color: #fff;
+}
+
+/* Change appearance of dropdown on hover */
+#advice-group:hover {
+    background-color: #fff;
+    cursor: pointer;
+}
 

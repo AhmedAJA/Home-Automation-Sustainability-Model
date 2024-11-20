@@ -33,6 +33,15 @@
     <div class="main-content" id="main-content">
         <section class="notifications-container">
             <h3>Energy-Saving Notifications and AI Advice</h3>
+            
+            <!-- Dropdown for advice groups -->
+            <label for="advice-group">Select Advice Group:</label>
+            <select id="advice-group" onchange="fetchNotifications()">
+                <% groups.forEach(group => { %>
+                    <option value="<%= group.GroupID %>"><%= group.GroupName %></option>
+                <% }); %>
+            </select>
+
             <div class="notifications-grid">
                 <% if (notifications.length === 0) { %>
                     <div class="notification-card no-data">
@@ -51,6 +60,46 @@
         </section>
     </div>
 
-    <script src="/js/frontend.js"></script>
+    <script>
+        function fetchNotifications() {
+    const groupId = document.getElementById('advice-group').value;
+
+    fetch(`/notifications?group=${groupId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const notificationsGrid = document.querySelector('.notifications-grid');
+            notificationsGrid.innerHTML = ''; // Clear existing notifications
+
+            if (data.notifications.length === 0) {
+                notificationsGrid.innerHTML = `
+                    <div class="notification-card no-data">
+                        <i class="fas fa-info-circle"></i>
+                        <p>No notifications available for the selected group.</p>
+                    </div>
+                `;
+            } else {
+                data.notifications.forEach(notification => {
+                    const notificationCard = document.createElement('div');
+                    notificationCard.className = 'notification-card';
+                    notificationCard.innerHTML = `
+                        <i class="fas fa-lightbulb"></i>
+                        <p>${notification}</p>
+                    `;
+                    notificationsGrid.appendChild(notificationCard);
+                });
+            }
+        })
+        .catch(error => console.error('Error fetching notifications:', error));
+}
+
+    </script>
+
+<script src="/js/frontend.js"></script>
+
 </body>
 </html>
