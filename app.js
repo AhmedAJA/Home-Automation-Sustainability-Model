@@ -317,6 +317,75 @@ app.get('/notifications', async (req, res) => {
   }
 });
 
+
+
+
+// Top 10 Advice Route
+app.get('/notifications/top', async (req, res) => {
+  const query = `
+      SELECT RoomNumber, AdviceText, GroupID
+      FROM notifications
+      LIMIT 500; -- Fetch up to 50 rows to rank the top 10
+  `;
+
+  db.query(query, async (err, results) => {
+      if (err) {
+          console.error('Error fetching data from the database:', err);
+          return res.status(500).json({ message: 'Database error.' });
+      }
+
+      if (results.length === 0) {
+          return res.json({ topAdvice: [] }); // No advice available
+      }
+
+      // Format the data for ChatGPT
+      const adviceList = results.map(
+          (row) => `Room ${row.RoomNumber}: "${row.AdviceText}"`
+      );
+
+      const prompt = `
+          You are an energy and environment optimization expert. The following is a list of energy-saving advice generated for different rooms and groups.
+
+          Please rank the top 10 most valuable pieces of advice based on their potential energy-saving impact, creativity, and relevance. Provide the ranking in this format:
+
+          - Room [RoomNumber]: [Simplified advice in bullet points]
+          - remove the date from the advice
+
+          Advice List:
+          ${adviceList.join('\n')}
+      `;
+
+      try {
+          const response = await openai.createChatCompletion({
+              model: 'gpt-3.5-turbo',
+              messages: [
+                  { role: 'system', content: 'You are an energy optimization expert.' },
+                  { role: 'user', content: prompt },
+              ],
+              max_tokens: 700,
+              temperature: 0.7,
+          });
+
+          const rankedAdvice = response.data.choices[0].message.content
+              .split('\n')
+              .filter((line) => line.trim().startsWith('-'))
+              .map((line) => line.trim().slice(1).trim());
+
+          res.json({ topAdvice: rankedAdvice });
+      } catch (error) {
+          console.error('Error generating top advice with ChatGPT:', error.response?.data || error.message);
+          res.status(500).json({ message: 'Error generating top advice.' });
+      }
+  });
+});
+
+
+
+
+
+
+
+
 // Login Route
 app.get('/login', (req, res) => {
   res.render('login', { title: 'Login' });
