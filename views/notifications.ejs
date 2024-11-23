@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
@@ -15,14 +17,14 @@
         <ul>
             <li><a href="/"><i class="fas fa-home"></i> Home</a></li>
             <li><a href="/features"><i class="fas fa-cogs"></i> Features</a></li>
-            <li><a href="/dashboard" class="active"><i class="fas fa-chart-pie"></i> Dashboard</a></li>
+            <li><a href="/dashboard"><i class="fas fa-chart-pie"></i> Dashboard</a></li>
             <li><a href="/chat"><i class="fas fa-comments"></i> Chat with ChatGPT</a></li>
-            <li><a href="/notifications"><i class="fas fa-bell"></i> Notifications</a></li>
+            <li><a href="/notifications" class="active"><i class="fas fa-bell"></i> Notifications</a></li>
             <li><a href="/rooms-data"><i class="fas fa-database"></i> Rooms Data</a></li>
             <li><a href="/login"><i class="fas fa-user"></i> Login</a></li>
             <li><a href="/about"><i class="fas fa-info-circle"></i> About Us</a></li>
             <li><a href="/contact"><i class="fas fa-envelope"></i> Contact Us</a></li>
-          </ul>
+        </ul>
     </div>
 
     <!-- Hamburger menu -->
@@ -39,12 +41,27 @@
             <label for="advice-group">Select Advice Group:</label>
             <select id="advice-group" onchange="fetchNotifications()">
                 <% groups.forEach(group => { %>
-                    <option value="<%= group.GroupID %>"><%= group.GroupName %></option>
+                    <option value="<%= group.GroupID %>" <%= group.GroupID === selectedGroup ? 'selected' : '' %>>
+                        <%= group.GroupName %>
+                    </option>
                 <% }); %>
             </select>
+            
+            
+            
+            
+
+
+
+
+
+
+            <!-- Generate Advice Button -->
+            <button id="generate-advice" onclick="generateAdvice()">Generate New Advice</button>
 
             <button id="show-top-10" onclick="fetchTopAdvice()">Show Top 10 Advice</button>
 
+            <!-- Notifications Grid -->
             <div class="notifications-grid" id="notifications-grid">
                 <% if (notifications.length === 0) { %>
                     <div class="notification-card no-data">
@@ -64,109 +81,121 @@
     </div>
 
     <script>
-        // Function to fetch notifications for the selected group
-function fetchNotifications() {
-    const groupId = document.getElementById('advice-group').value;
+        // Fetch notifications for the selected advice group
+        function fetchNotifications() {
+        const groupId = document.getElementById('advice-group').value;
+        window.location.href = `/notifications?group=${groupId}`;
+    }
 
-    fetch(`/notifications?group=${groupId}`)
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch notifications.');
-            }
-            return response.json();
-        })
-        .then((data) => {
+
+
+function fetchTopAdvice() {
             const notificationsGrid = document.getElementById('notifications-grid');
-            notificationsGrid.innerHTML = ''; // Clear existing notifications
+            notificationsGrid.innerHTML = `
+            <div class="notification-card">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Fetching top advice... Please wait.</p>
+            </div>
+        `;
 
-            if (data.notifications.length === 0) {
-                notificationsGrid.innerHTML = `
+            fetch('/notifications/top')
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch top advice.');
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    notificationsGrid.innerHTML = ''; // Clear existing notifications
+
+                    if (data.topAdvice.length === 0) {
+                        notificationsGrid.innerHTML = `
+                        <div class="notification-card no-data">
+                            <i class="fas fa-info-circle"></i>
+                            <p>No top advice available at the moment.</p>
+                        </div>
+                    `;
+                    } else {
+                        const container = document.createElement('div');
+                        container.className = 'top-advice-container';
+
+                        const title = document.createElement('div');
+                        title.className = 'top-advice-title';
+                        title.textContent = 'Top 10 Energy-Saving Advice';
+                        container.appendChild(title);
+
+                        data.topAdvice.forEach((advice, index) => {
+                            const adviceCard = document.createElement('div');
+                            adviceCard.className = 'advice-card';
+
+                            const rank = document.createElement('div');
+                            rank.className = 'advice-rank';
+                            rank.textContent = `#${index + 1}`;
+
+                            const adviceText = document.createElement('div');
+                            adviceText.className = 'advice-text';
+                            adviceText.textContent = advice;
+
+                            adviceCard.appendChild(rank);
+                            adviceCard.appendChild(adviceText);
+                            container.appendChild(adviceCard);
+                        });
+
+                        notificationsGrid.appendChild(container);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error fetching top advice:', error);
+                    alert('Failed to fetch top advice. Please try again later.');
+                });
+        }
+
+        // Generate new advice
+        function generateAdvice() {
+            const notificationsGrid = document.getElementById('notifications-grid');
+            notificationsGrid.innerHTML = `
+        <div class="notification-card">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Generating advice... Please wait.</p>
+        </div>
+    `;
+
+            fetch('/notifications/generate', { method: 'POST' })
+                .then((response) => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.error || 'Failed to generate advice.'); });
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    notificationsGrid.innerHTML = ''; // Clear existing notifications
+
+                    if (data.notifications.length === 0) {
+                        notificationsGrid.innerHTML = `
                     <div class="notification-card no-data">
                         <i class="fas fa-info-circle"></i>
-                        <p>No notifications available at the moment.</p>
+                        <p>No new advice generated.</p>
                     </div>
                 `;
-            } else {
-                data.notifications.forEach((notification) => {
-                    const notificationCard = document.createElement('div');
-                    notificationCard.className = 'notification-card';
-                    notificationCard.innerHTML = `
+                    } else {
+                        data.notifications.forEach((notification) => {
+                            const notificationCard = document.createElement('div');
+                            notificationCard.className = 'notification-card';
+                            notificationCard.innerHTML = `
                         <i class="fas fa-lightbulb"></i>
                         <p>${notification}</p>
                     `;
-                    notificationsGrid.appendChild(notificationCard);
+                            notificationsGrid.appendChild(notificationCard);
+                        });
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error generating advice:', error);
+                    alert(`Error: ${error.message}`);
                 });
-            }
-        })
-        .catch((error) => {
-            console.error('Error fetching notifications:', error);
-            alert('Failed to fetch notifications. Please try again later.');
-        });
-}
-
-// Function to fetch Top 10 Advice
-// Function to fetch Top 10 Advice
-function fetchTopAdvice() {
-    fetch('/notifications/top')
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch top advice.');
-            }
-            return response.json();
-        })
-        .then((data) => {
-            const notificationsGrid = document.getElementById('notifications-grid');
-            notificationsGrid.innerHTML = ''; // Clear existing notifications
-
-            if (data.topAdvice.length === 0) {
-                notificationsGrid.innerHTML = `
-                    <div class="notification-card no-data">
-                        <i class="fas fa-info-circle"></i>
-                        <p>No top advice available at the moment.</p>
-                    </div>
-                `;
-            } else {
-                const container = document.createElement('div');
-                container.className = 'top-advice-container';
-
-                const title = document.createElement('div');
-                title.className = 'top-advice-title';
-                title.textContent = 'Top 10 Energy-Saving Advice';
-                container.appendChild(title);
-
-                data.topAdvice.forEach((advice) => {
-                    const adviceCard = document.createElement('div');
-                    adviceCard.className = 'advice-card';
-
-                    const [roomNumber, ...adviceParts] = advice.split(':');
-                    const adviceText = adviceParts.join(':').trim();
-
-                    const room = document.createElement('div');
-                    room.className = 'room-number';
-                    room.textContent = roomNumber.trim();
-
-                    const adviceContent = document.createElement('div');
-                    adviceContent.className = 'advice-text';
-                    adviceContent.textContent = adviceText;
-
-                    adviceCard.appendChild(room);
-                    adviceCard.appendChild(adviceContent);
-
-                    container.appendChild(adviceCard);
-                });
-
-                notificationsGrid.appendChild(container);
-            }
-        })
-        .catch((error) => {
-            console.error('Error fetching top advice:', error);
-            alert('Failed to fetch top advice. Please try again later.');
-        });
-}
-
-
-
+        }
     </script>
     <script src="/js/frontend.js"></script>
 </body>
+
 </html>

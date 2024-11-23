@@ -111,10 +111,10 @@ app.post('/clear-history', (req, res) => {
 // Dashboard Overview Route
 app.get('/dashboard', async (req, res) => {
   const queries = {
-      rooms: `SELECT COUNT(*) AS count FROM room`,
-      readingTypes: `SELECT COUNT(DISTINCT ReadingType) AS count FROM reading`,
-      readings: `SELECT COUNT(*) AS count FROM reading`,
-      averages: `
+    rooms: `SELECT COUNT(*) AS count FROM room`,
+    readingTypes: `SELECT COUNT(DISTINCT ReadingType) AS count FROM reading`,
+    readings: `SELECT COUNT(*) AS count FROM reading`,
+    averages: `
           SELECT 
               ReadingType, 
               AVG(Value) AS avg_value 
@@ -124,42 +124,42 @@ app.get('/dashboard', async (req, res) => {
   };
 
   try {
-      const [roomCount, readingTypeCount, readingCount, averages] = await Promise.all([
-          new Promise((resolve, reject) => {
-              db.query(queries.rooms, (err, result) => (err ? reject(err) : resolve(result[0].count)));
-          }),
-          new Promise((resolve, reject) => {
-              db.query(queries.readingTypes, (err, result) => (err ? reject(err) : resolve(result[0].count)));
-          }),
-          new Promise((resolve, reject) => {
-              db.query(queries.readings, (err, result) => (err ? reject(err) : resolve(result[0].count)));
-          }),
-          new Promise((resolve, reject) => {
-              db.query(queries.averages, (err, result) => (err ? reject(err) : resolve(result)));
-          }),
-      ]);
+    const [roomCount, readingTypeCount, readingCount, averages] = await Promise.all([
+      new Promise((resolve, reject) => {
+        db.query(queries.rooms, (err, result) => (err ? reject(err) : resolve(result[0].count)));
+      }),
+      new Promise((resolve, reject) => {
+        db.query(queries.readingTypes, (err, result) => (err ? reject(err) : resolve(result[0].count)));
+      }),
+      new Promise((resolve, reject) => {
+        db.query(queries.readings, (err, result) => (err ? reject(err) : resolve(result[0].count)));
+      }),
+      new Promise((resolve, reject) => {
+        db.query(queries.averages, (err, result) => (err ? reject(err) : resolve(result)));
+      }),
+    ]);
 
-      // Calculate the number of sensors
-      const sensorCount = roomCount * readingTypeCount;
+    // Calculate the number of sensors
+    const sensorCount = roomCount * readingTypeCount;
 
-      // Process averages for frontend
-      const averageData = averages.map(row => ({
-          type: row.ReadingType,
-          value: parseFloat(row.avg_value.toFixed(2)) // Format to 2 decimal places
-      }));
+    // Process averages for frontend
+    const averageData = averages.map(row => ({
+      type: row.ReadingType,
+      value: parseFloat(row.avg_value.toFixed(2)) // Format to 2 decimal places
+    }));
 
-      // Pass all data to the template
-      res.render('dashboard', {
-          title: 'Dashboard Overview',
-          roomCount,
-          sensorCount,
-          readingCount,
-          readingTypeCount,
-          averageData // Pass dynamic averages to the template
-      });
+    // Pass all data to the template
+    res.render('dashboard', {
+      title: 'Dashboard Overview',
+      roomCount,
+      sensorCount,
+      readingCount,
+      readingTypeCount,
+      averageData // Pass dynamic averages to the template
+    });
   } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      res.status(500).send('Error fetching dashboard data.');
+    console.error('Error fetching dashboard data:', error);
+    res.status(500).send('Error fetching dashboard data.');
   }
 });
 
@@ -201,8 +201,8 @@ app.get('/rooms-data', (req, res) => {
       const uniqueRoomIDsWithData = [...new Set(readings.map(data => data.RoomID))];
       const filteredRooms = rooms.filter(room => uniqueRoomIDsWithData.includes(room.RoomID));
 
-      res.render('roomsData', { 
-        title: 'roomsData', 
+      res.render('roomsData', {
+        title: 'roomsData',
         rooms: filteredRooms,
         sensorData: readings
       });
@@ -210,30 +210,59 @@ app.get('/rooms-data', (req, res) => {
   });
 });
 
-// Route: Generate advice and group them
-app.get('/notifications', async (req, res) => {
-  const groupId = req.query.group;
 
-  // If a group is provided in the query parameter, fetch data for that group
-  if (groupId) {
-      const query = `
-          SELECT RoomNumber, AdviceText 
-          FROM notifications 
-          WHERE GroupID = ?;
-      `;
+app.get('/notifications', (req, res) => {
+  const groupId = req.query.group || 1; // Default to GroupID 1 if none is selected
 
-      db.query(query, [groupId], (err, results) => {
-          if (err) {
-              console.error('Error fetching notifications:', err);
-              return res.status(500).json({ error: 'Database error' });
-          }
+  console.log("Selected Group ID:", groupId);
 
-          const notifications = results.map(row => `Room ${row.RoomNumber}: "${row.AdviceText}"`);
-          res.json({ notifications });
+  const queryGroups = `SELECT GroupID, GroupName FROM advice_groups`;
+  db.query(queryGroups, (groupErr, groups) => {
+    if (groupErr) {
+      console.error("Error fetching advice groups:", groupErr);
+      return res.status(500).send("Error fetching advice groups.");
+    }
+
+    if (groupId) {
+      const queryNotifications = `
+              SELECT RoomNumber, AdviceText 
+              FROM notifications 
+              WHERE GroupID = ?;
+          `;
+
+      db.query(queryNotifications, [groupId], (err, results) => {
+        if (err) {
+          console.error("Error fetching notifications:", err);
+          return res.status(500).send("Database query failed.");
+        }
+
+        const notifications = results.map(row => `Room ${row.RoomNumber}: "${row.AdviceText}"`);
+
+        console.log("Fetched Notifications:", notifications);
+
+        res.render('notifications', {
+          title: 'Energy-Saving Notifications and AI Advice',
+          notifications,
+          groups,
+          selectedGroup: parseInt(groupId, 10),
+        });
       });
-  } else {
-      // If no group is provided, generate new recommendations and save them to the database
-      const query = `
+    } else {
+      res.render('notifications', {
+        title: 'Energy-Saving Notifications and AI Advice',
+        notifications: [], // No notifications
+        groups,
+        selectedGroup: null,
+      });
+    }
+  });
+});
+
+app.post('/notifications/generate', async (req, res) => {
+  try {
+    console.log("Fetching room data...");
+
+    const query = `
           WITH RankedData AS (
               SELECT 
                   r.RoomID, 
@@ -250,38 +279,35 @@ app.get('/notifications', async (req, res) => {
           WHERE RowNum <= 3; -- Limit to 3 rows per RoomID
       `;
 
-      db.query(query, async (err, results) => {
-          if (err) {
-              console.error('Error fetching data from the database:', err);
-              return res.status(500).send('Database error');
-          }
+    db.query(query, async (err, results) => {
+      if (err) {
+        console.error("Database query error:", err);
+        return res.status(500).json({ error: "Database query failed." });
+      }
 
-          if (results.length === 0) {
-              return res.render('notifications', {
-                  title: 'Energy-Saving Notifications and AI Advice',
-                  notifications: ["No recent sensor data available for generating recommendations."],
-                  groups: [],
-              });
-          }
+      if (results.length === 0) {
+        console.log("No data found for advice generation.");
+        return res.json({ notifications: [] });
+      }
 
-          // Group the readings by RoomNumber
-          const groupedData = results.reduce((acc, row) => {
-              if (!acc[row.RoomNumber]) acc[row.RoomNumber] = [];
-              acc[row.RoomNumber].push({
-                  Time: row.Time,
-                  Value: row.Value.toFixed(2),
-                  ReadingType: row.ReadingType,
-              });
-              return acc;
-          }, {});
+      console.log("Grouping data for OpenAI...");
+      const groupedData = results.reduce((acc, row) => {
+        if (!acc[row.RoomNumber]) acc[row.RoomNumber] = [];
+        acc[row.RoomNumber].push({
+          Time: row.Time,
+          Value: row.Value.toFixed(2),
+          ReadingType: row.ReadingType,
+        });
+        return acc;
+      }, {});
 
-          // Prepare data for ChatGPT
-          const inputData = Object.entries(groupedData).map(([roomNumber, readings]) => ({
-              RoomNumber: roomNumber,
-              Readings: readings,
-          }));
+      console.log("Sending data to OpenAI...");
+      const inputData = Object.entries(groupedData).map(([roomNumber, readings]) => ({
+        RoomNumber: roomNumber,
+        Readings: readings,
+      }));
 
-          const prompt = `
+      const prompt = `
               You are an energy and environment optimization expert. Based on the following room sensor data, generate dynamic, actionable, and diverse energy-saving recommendations.
 
               Avoid repeating similar advice. Be creative, considering the type of sensor readings (e.g., temperature, CO2 levels, humidity) and possible actions specific to home automation systems. Examples of actions might include:
@@ -294,93 +320,78 @@ app.get('/notifications', async (req, res) => {
               The advice should be:
               - Specific to each room.
               - Based on the sensor readings provided.
+              - Use human-friendly timestamps (e.g., "9:30 PM on August 25, 2013").
               - In a professional format like this:
-                Room [RoomNumber]: "[Action] at [Time] on [Date] to [Goal]."
+                Room [RoomNumber]: "[Action] at [Time] to [Goal]."
 
               Data:
               ${JSON.stringify(inputData)}
           `;
 
-          try {
-              const response = await openai.createChatCompletion({
-                  model: "gpt-3.5-turbo",
-                  messages: [
-                      { role: "system", content: "You are an energy optimization expert." },
-                      { role: "user", content: prompt },
-                  ],
-                  max_tokens: 700,
-                  temperature: 0.9,
+      try {
+        const response = await openai.createChatCompletion({
+          model: "gpt-3.5-turbo",
+          messages: [
+            { role: "system", content: "You are an energy optimization expert." },
+            { role: "user", content: prompt },
+          ],
+          max_tokens: 700,
+          temperature: 0.9,
+        });
+
+        const recommendations = response.data.choices[0].message.content
+          .split('\n')
+          .filter(line => line.trim().startsWith('Room'));
+
+        console.log("Saving advice group to database...");
+        const groupName = `Advice Group ${Date.now()}`;
+        db.query(
+          `INSERT INTO advice_groups (GroupName) VALUES (?)`,
+          [groupName],
+          (groupErr, groupResult) => {
+            if (groupErr) {
+              console.error("Error saving advice group:", groupErr);
+              return res.status(500).json({ error: "Database error while creating advice group." });
+            }
+
+            const groupId = groupResult.insertId;
+
+            console.log("Saving recommendations...");
+            const savePromises = recommendations.map(advice => {
+              const match = advice.match(/Room (\d+): "(.*)"/);
+              if (match) {
+                const [, roomNumber, adviceText] = match;
+                return new Promise((resolve, reject) => {
+                  db.query(
+                    `INSERT INTO notifications (RoomNumber, AdviceText, GroupID) VALUES (?, ?, ?)`,
+                    [roomNumber, adviceText, groupId],
+                    (err, result) => {
+                      if (err) return reject(err);
+                      resolve(result);
+                    }
+                  );
+                });
+              }
+            });
+
+            Promise.all(savePromises)
+              .then(() => res.json({ notifications: recommendations }))
+              .catch(saveErr => {
+                console.error("Error saving notifications:", saveErr);
+                return res.status(500).json({ error: "Database error while saving notifications." });
               });
-
-              const recommendations = response.data.choices[0].message.content
-                  .split('\n')
-                  .filter(line => line.trim().startsWith('Room')); // Filter room-specific recommendations
-
-              // Save advice to the database
-              const groupName = `Advice Group ${Date.now()}`;
-              db.query(
-                  `INSERT INTO advice_groups (GroupName) VALUES (?)`,
-                  [groupName],
-                  (groupErr, groupResult) => {
-                      if (groupErr) {
-                          console.error('Error saving advice group:', groupErr);
-                          return res.status(500).send('Error saving advice group.');
-                      }
-
-                      const groupId = groupResult.insertId;
-
-                      // Save each recommendation under this group
-                      const savePromises = recommendations.map(advice => {
-                          const match = advice.match(/Room (\d+): "(.*)"/);
-                          if (match) {
-                              const [, roomNumber, adviceText] = match;
-                              return new Promise((resolve, reject) => {
-                                  db.query(
-                                      `INSERT INTO notifications (RoomNumber, AdviceText, GroupID) VALUES (?, ?, ?)`,
-                                      [roomNumber, adviceText, groupId],
-                                      (err, result) => {
-                                          if (err) return reject(err);
-                                          resolve(result);
-                                      }
-                                  );
-                              });
-                          }
-                      });
-
-                      Promise.all(savePromises)
-                          .then(() => {
-                              // Fetch all groups for dropdown
-                              db.query(
-                                  `SELECT GroupID, GroupName FROM advice_groups`,
-                                  (groupFetchErr, groups) => {
-                                      if (groupFetchErr) {
-                                          console.error('Error fetching advice groups:', groupFetchErr);
-                                          return res.status(500).send('Error fetching advice groups.');
-                                      }
-
-                                      res.render('notifications', {
-                                          title: 'Energy-Saving Notifications and AI Advice',
-                                          notifications: recommendations,
-                                          groups,
-                                      });
-                                  }
-                              );
-                          })
-                          .catch(saveErr => {
-                              console.error('Error saving notifications:', saveErr);
-                              res.status(500).send('Error saving notifications.');
-                          });
-                  }
-              );
-          } catch (error) {
-              console.error('Error generating recommendations with ChatGPT:', error);
-              res.status(500).send('Error generating AI advice.');
           }
-      });
+        );
+      } catch (openAIError) {
+        console.error("OpenAI API error:", openAIError);
+        return res.status(500).json({ error: "OpenAI API error. Please check your configuration." });
+      }
+    });
+  } catch (error) {
+    console.error("Unhandled error in /notifications/generate:", error);
+    res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
-
-
 
 
 // Top 10 Advice Route
@@ -392,21 +403,21 @@ app.get('/notifications/top', async (req, res) => {
   `;
 
   db.query(query, async (err, results) => {
-      if (err) {
-          console.error('Error fetching data from the database:', err);
-          return res.status(500).json({ message: 'Database error.' });
-      }
+    if (err) {
+      console.error('Error fetching data from the database:', err);
+      return res.status(500).json({ message: 'Database error.' });
+    }
 
-      if (results.length === 0) {
-          return res.json({ topAdvice: [] }); // No advice available
-      }
+    if (results.length === 0) {
+      return res.json({ topAdvice: [] }); // No advice available
+    }
 
-      // Format the data for ChatGPT
-      const adviceList = results.map(
-          (row) => `Room ${row.RoomNumber}: "${row.AdviceText}"`
-      );
+    // Format the data for ChatGPT
+    const adviceList = results.map(
+      (row) => `Room ${row.RoomNumber}: "${row.AdviceText}"`
+    );
 
-      const prompt = `
+    const prompt = `
           You are an energy and environment optimization expert. The following is a list of energy-saving advice generated for different rooms and groups.
 
           Please rank the top 10 most valuable pieces of advice based on their potential energy-saving impact, creativity, and relevance. Provide the ranking in this format:
@@ -418,27 +429,27 @@ app.get('/notifications/top', async (req, res) => {
           ${adviceList.join('\n')}
       `;
 
-      try {
-          const response = await openai.createChatCompletion({
-              model: 'gpt-3.5-turbo',
-              messages: [
-                  { role: 'system', content: 'You are an energy optimization expert.' },
-                  { role: 'user', content: prompt },
-              ],
-              max_tokens: 700,
-              temperature: 0.7,
-          });
+    try {
+      const response = await openai.createChatCompletion({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: 'You are an energy optimization expert.' },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: 700,
+        temperature: 0.7,
+      });
 
-          const rankedAdvice = response.data.choices[0].message.content
-              .split('\n')
-              .filter((line) => line.trim().startsWith('-'))
-              .map((line) => line.trim().slice(1).trim());
+      const rankedAdvice = response.data.choices[0].message.content
+        .split('\n')
+        .filter((line) => line.trim().startsWith('-'))
+        .map((line) => line.trim().slice(1).trim());
 
-          res.json({ topAdvice: rankedAdvice });
-      } catch (error) {
-          console.error('Error generating top advice with ChatGPT:', error.response?.data || error.message);
-          res.status(500).json({ message: 'Error generating top advice.' });
-      }
+      res.json({ topAdvice: rankedAdvice });
+    } catch (error) {
+      console.error('Error generating top advice with ChatGPT:', error.response?.data || error.message);
+      res.status(500).json({ message: 'Error generating top advice.' });
+    }
   });
 });
 
