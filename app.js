@@ -4,6 +4,8 @@ const path = require('path');
 const mysql = require('mysql2');
 const { Configuration, OpenAIApi } = require('openai');
 
+
+
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -36,6 +38,8 @@ db.connect((err) => {
 // Set up the view engine and the path for EJS templates
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+
 
 // Middleware for serving static files (CSS, JavaScript, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
@@ -104,8 +108,67 @@ app.post('/clear-history', (req, res) => {
   res.json({ message: 'Conversation history cleared.' });
 });
 
-// Dashboard Route with Database Query
-app.get('/dashboard', (req, res) => {
+// Dashboard Overview Route
+app.get('/dashboard', async (req, res) => {
+  const queries = {
+      rooms: `SELECT COUNT(*) AS count FROM room`,
+      readingTypes: `SELECT COUNT(DISTINCT ReadingType) AS count FROM reading`,
+      readings: `SELECT COUNT(*) AS count FROM reading`,
+      averages: `
+          SELECT 
+              ReadingType, 
+              AVG(Value) AS avg_value 
+          FROM reading 
+          GROUP BY ReadingType
+      `
+  };
+
+  try {
+      const [roomCount, readingTypeCount, readingCount, averages] = await Promise.all([
+          new Promise((resolve, reject) => {
+              db.query(queries.rooms, (err, result) => (err ? reject(err) : resolve(result[0].count)));
+          }),
+          new Promise((resolve, reject) => {
+              db.query(queries.readingTypes, (err, result) => (err ? reject(err) : resolve(result[0].count)));
+          }),
+          new Promise((resolve, reject) => {
+              db.query(queries.readings, (err, result) => (err ? reject(err) : resolve(result[0].count)));
+          }),
+          new Promise((resolve, reject) => {
+              db.query(queries.averages, (err, result) => (err ? reject(err) : resolve(result)));
+          }),
+      ]);
+
+      // Calculate the number of sensors
+      const sensorCount = roomCount * readingTypeCount;
+
+      // Process averages for frontend
+      const averageData = averages.map(row => ({
+          type: row.ReadingType,
+          value: parseFloat(row.avg_value.toFixed(2)) // Format to 2 decimal places
+      }));
+
+      // Pass all data to the template
+      res.render('dashboard', {
+          title: 'Dashboard Overview',
+          roomCount,
+          sensorCount,
+          readingCount,
+          readingTypeCount,
+          averageData // Pass dynamic averages to the template
+      });
+  } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      res.status(500).send('Error fetching dashboard data.');
+  }
+});
+
+
+
+
+
+// roomsData Route with Database Query
+app.get('/rooms-data', (req, res) => {
   const readingsQuery = `
     SELECT 
       ReadingID, 
@@ -138,8 +201,8 @@ app.get('/dashboard', (req, res) => {
       const uniqueRoomIDsWithData = [...new Set(readings.map(data => data.RoomID))];
       const filteredRooms = rooms.filter(room => uniqueRoomIDsWithData.includes(room.RoomID));
 
-      res.render('dashboard', { 
-        title: 'Dashboard', 
+      res.render('roomsData', { 
+        title: 'roomsData', 
         rooms: filteredRooms,
         sensorData: readings
       });

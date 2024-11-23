@@ -1158,4 +1158,139 @@ button:active {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
+/* Dashboard Container */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    margin: 0 auto;
+    max-width: 1200px;
+    text-align: center;
+}
 
+/* Cards Grid Layout */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive columns */
+    gap: 20px; /* Space between cards */
+    width: 100%;
+    padding: 10px 0;
+    justify-items: center;
+}
+
+/* Stats Card */
+.stats-card {
+    background: linear-gradient(135deg, #e6f0ff, #ffffff); /* Gradient background */
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1); /* Soft shadow */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    max-width: 240px; /* Limit the maximum width of the cards */
+    width: 100%; /* Consistent card width */
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2); /* Shadow on hover */
+}
+
+/* Card Content */
+.stats-card h3 {
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.stats-card p {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #4a6cf7;
+    margin: 0;
+}
+
+/* Card Icons */
+.stats-card .icon {
+    font-size: 2.5rem;
+    color: #4a6cf7;
+    margin: 10px 0;
+}
+
+/* Sensor Averages */
+.sensor-averages {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive columns */
+    gap: 20px;
+    width: 100%;
+    margin-top: 30px;
+    padding: 10px 0;
+}
+
+/* Average Card */
+.average-card {
+    background: linear-gradient(135deg, #e0f7fa, #ffffff); /* Gradient background */
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    max-width: 220px;
+    width: 100%;
+}
+
+.average-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Average Card Content */
+.average-card h3 {
+    font-size: 1rem;
+    color: #004d40;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.average-card p {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #00695c;
+    margin: 0;
+}
+
+/* Icon in Average Card */
+.average-card .icon {
+    font-size: 2.5rem;
+    color: #00796b;
+    margin-bottom: 10px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .stats-card,
+    .average-card {
+        width: 90%;
+    }
+    .stats-grid {
+        gap: 15px; /* Adjust space between cards */
+    }
+}
+
+/* Chart Container Styling */
+.chart-container {
+    background: #ffffff; /* White background for the container */
+    border-radius: 12px; /* Rounded edges */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    padding: 20px; /* Internal padding for spacing */
+    margin: 20px auto; /* Center the container with margin */
+    max-width: 90%; /* Adjust max width for responsiveness */
+    text-align: center; /* Center-align text inside the container */
+}
+
+/* Make the chart responsive */
+#averageChart {
+    width: 100%;
+    height: 400px;
+}

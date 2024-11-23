@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rooms Data - Home Automation</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Load ApexCharts library -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body id="rooms data-page">
+    <!-- Sidebar Navigation -->
+    <div class="toggle-btn" onclick="toggleSidebar()">&#9776;</div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo">Home Automation</div>
+        <ul>
+            <li><a href="/"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="/features"><i class="fas fa-cogs"></i> Features</a></li>
+            <li><a href="/dashboard" class="active"><i class="fas fa-chart-pie"></i> Dashboard</a></li>
+            <li><a href="/chat"><i class="fas fa-comments"></i> Chat with ChatGPT</a></li>
+            <li><a href="/notifications"><i class="fas fa-bell"></i> Notifications</a></li>
+            <li><a href="/rooms-data"><i class="fas fa-database"></i> Rooms Data</a></li>
+            <li><a href="/login"><i class="fas fa-user"></i> Login</a></li>
+            <li><a href="/about"><i class="fas fa-info-circle"></i> About Us</a></li>
+            <li><a href="/contact"><i class="fas fa-envelope"></i> Contact Us</a></li>
+          </ul>
+    </div>
+    
+    <!-- Main Content Area -->
+    <div class="main-content" id="main-content">
+        <!-- Room Selector Dropdown -->
+        <div class="room-selector-container">
+            <label for="roomSelect">Select Room:</label>
+            <select id="roomSelect">
+                <% rooms.forEach(room => { %>
+                    <option value="<%= room.RoomID %>"><%= room.RoomNumber %></option>
+                <% }) %>
+            </select>
+        </div>
+
+        <!-- Charts Grid Layout -->
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3>PIR Diagram</h3>
+                <div id="pirChart"></div> <!-- Chart container for PIR data -->
+            </div>
+            <div class="card">
+                <h3>Temperature Diagram</h3>
+                <div id="temperatureChart"></div> <!-- Chart container for Temperature data -->
+            </div>
+            <div class="card">
+                <h3>Humidity Diagram</h3>
+                <div id="humidityChart"></div> <!-- Chart container for Humidity data -->
+            </div>
+            <div class="card">
+                <h3>CO2 Diagram</h3>
+                <div id="co2Chart"></div> <!-- Chart container for CO2 data -->
+            </div>
+            <div class="card">
+                <h3>Light Diagram</h3>
+                <div id="lightChart"></div> <!-- Chart container for Light data -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Pass sensorData to JavaScript as a JSON object -->
+    <script>
+        window.sensorData = <%- JSON.stringify(sensorData) %>;
+    </script>
+
+    <!-- Custom JavaScript files for managing charts and frontend logic -->
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/frontend.js"></script>
+
+</body>
+</html>
