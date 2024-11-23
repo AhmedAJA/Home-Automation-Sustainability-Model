@@ -48,6 +48,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+
 // Home Route
 app.get('/', (req, res) => {
   res.render('index', { title: 'Home' });
@@ -236,8 +237,11 @@ app.get('/notifications', (req, res) => {
           return res.status(500).send("Database query failed.");
         }
 
-        const notifications = results.map(row => `Room ${row.RoomNumber}: "${row.AdviceText}"`);
-
+        const notifications = results.map(row => ({
+          roomNumber: row.RoomNumber,
+          adviceText: row.AdviceText
+      }));
+      
         console.log("Fetched Notifications:", notifications);
 
         res.render('notifications', {
@@ -450,6 +454,44 @@ app.get('/notifications/top', async (req, res) => {
       console.error('Error generating top advice with ChatGPT:', error.response?.data || error.message);
       res.status(500).json({ message: 'Error generating top advice.' });
     }
+  });
+});
+
+// Route to delete a notification
+app.delete('/notifications/delete', (req, res) => {
+  const { roomNumber, groupId } = req.body;
+
+  if (!roomNumber || !groupId) {
+      return res.status(400).json({ error: 'Room number and group ID are required.' });
+  }
+
+  const query = `DELETE FROM notifications WHERE RoomNumber = ? AND GroupID = ?`;
+  db.query(query, [roomNumber, groupId], (err) => {
+      if (err) {
+          console.error("Error deleting notification:", err);
+          return res.status(500).json({ error: 'Failed to delete notification.' });
+      }
+      res.json({ success: true });
+  });
+});
+
+
+
+// Route to mark a notification as favorite
+app.post('/notifications/favorite', (req, res) => {
+  const { roomNumber, groupId } = req.body;
+
+  if (!roomNumber || !groupId) {
+      return res.status(400).json({ error: 'Room number and group ID are required.' });
+  }
+
+  const query = `UPDATE notifications SET IsFavorite = 1 WHERE RoomNumber = ? AND GroupID = ?`;
+  db.query(query, [roomNumber, groupId], (err) => {
+      if (err) {
+          console.error("Error updating favorite status:", err);
+          return res.status(500).json({ error: 'Failed to mark as favorite.' });
+      }
+      res.json({ success: true });
   });
 });
 

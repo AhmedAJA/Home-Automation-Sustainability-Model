@@ -40,16 +40,16 @@
             <!-- Dropdown for advice groups -->
             <label for="advice-group">Select Advice Group:</label>
             <select id="advice-group" onchange="fetchNotifications()">
-                <% groups.forEach(group => { %>
-                    <option value="<%= group.GroupID %>" <%= group.GroupID === selectedGroup ? 'selected' : '' %>>
+                <% groups.forEach(group=> { %>
+                    <option value="<%= group.GroupID %>" <%=group.GroupID===selectedGroup ? 'selected' : '' %>>
                         <%= group.GroupName %>
                     </option>
-                <% }); %>
+                    <% }); %>
             </select>
-            
-            
-            
-            
+
+
+
+
 
 
 
@@ -62,6 +62,7 @@
             <button id="show-top-10" onclick="fetchTopAdvice()">Show Top 10 Advice</button>
 
             <!-- Notifications Grid -->
+            <!-- Notifications Grid -->
             <div class="notifications-grid" id="notifications-grid">
                 <% if (notifications.length === 0) { %>
                     <div class="notification-card no-data">
@@ -70,26 +71,35 @@
                     </div>
                 <% } else { %>
                     <% notifications.forEach(notification => { %>
-                        <div class="notification-card">
+                        <div class="notification-card" data-room-number="<%= notification.roomNumber %>" data-group-id="<%= selectedGroup %>">
                             <i class="fas fa-lightbulb"></i>
-                            <p><%= notification %></p>
+                            <p>
+                                Room <%= notification.roomNumber %>: "<%= notification.adviceText %>"
+                            </p>
+                            <!-- Icons for trash and star -->
+                            <div class="icons-container">
+                                <i id="trash-icon" class="fas fa-trash trash-icon" onclick="deleteAdvice(this)" data-room-number="<%= notification.roomNumber %>" data-group-id="<%= selectedGroup %>"></i>
+                                <i id="star-icon" class="fas fa-star star-icon" onclick="favoriteAdvice(this)" data-room-number="<%= notification.roomNumber %>" data-group-id="<%= selectedGroup %>"></i>
+                            </div>
                         </div>
                     <% }); %>
                 <% } %>
             </div>
+            
+
         </section>
     </div>
 
     <script>
         // Fetch notifications for the selected advice group
         function fetchNotifications() {
-        const groupId = document.getElementById('advice-group').value;
-        window.location.href = `/notifications?group=${groupId}`;
-    }
+            const groupId = document.getElementById('advice-group').value;
+            window.location.href = `/notifications?group=${groupId}`;
+        }
 
 
 
-function fetchTopAdvice() {
+        function fetchTopAdvice() {
             const notificationsGrid = document.getElementById('notifications-grid');
             notificationsGrid.innerHTML = `
             <div class="notification-card">
@@ -194,6 +204,53 @@ function fetchTopAdvice() {
                     alert(`Error: ${error.message}`);
                 });
         }
+
+         // Delete advice
+function deleteAdvice(element) {
+    const roomNumber = element.getAttribute('data-room-number');
+    const groupId = element.getAttribute('data-group-id');
+
+    console.log('Attempting to delete advice for:', { roomNumber, groupId }); // Debug log
+
+    fetch('/notifications/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomNumber, groupId })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Delete response:', data); // Debug log
+            if (data.success) {
+                alert('Advice deleted successfully!');
+                element.closest('.notification-card').remove(); // Remove the card
+            }
+        })
+        .catch(error => console.error('Error deleting advice:', error));
+}
+
+// Mark advice as favorite
+function favoriteAdvice(element) {
+    const roomNumber = element.getAttribute('data-room-number');
+    const groupId = element.getAttribute('data-group-id');
+
+    console.log('Attempting to favorite advice for:', { roomNumber, groupId }); // Debug log
+
+    fetch('/notifications/favorite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomNumber, groupId })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Favorite response:', data); // Debug log
+            if (data.success) {
+                element.style.color = 'gold'; // Highlight the star icon
+                alert('Advice marked as favorite!');
+            }
+        })
+        .catch(error => console.error('Error marking as favorite:', error));
+}
+
     </script>
     <script src="/js/frontend.js"></script>
 </body>
