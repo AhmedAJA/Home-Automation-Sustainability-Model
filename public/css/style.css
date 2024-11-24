@@ -1320,3 +1320,22 @@ button:active {
 #star-icon {
     color: gold; /* Specific color for the star icon */
 }
+
+.login-container{
+
+padding-top: 10%;;
+
+}
+
+.login-container h3{
+    text-align: center;
+}
+
+.signup-container{
+
+padding-top: 8%;
+}
+
+.signup-container h3{
+    text-align: center;
+}

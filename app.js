@@ -199,7 +199,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
 app.get('/rooms-data', (req, res) => {
   // Check if the user is logged in
   if (!req.session || !req.session.userId) {
-    return res.status(401).send('Unauthorized. Please log in.');
+    return res.render('login').status(401).send('Unauthorized. Please log in.');
   }
 
   const userId = req.session.userId; // Get the user ID from the session
@@ -260,7 +260,7 @@ app.get('/rooms-data', (req, res) => {
 app.get('/notifications', (req, res) => {
   // Check if the user is logged in
   if (!req.session || !req.session.userId) {
-    return res.status(401).send('Unauthorized. Please log in.');
+    return res.render('login').status(401).send('Unauthorized. Please log in.');
   }
 
   const userId = req.session.userId; // Get the user ID from the session
@@ -330,7 +330,7 @@ app.post('/notifications/generate', async (req, res) => {
   try {
     // Ensure user is logged in
     if (!req.session || !req.session.userId) {
-      return res.status(401).json({ error: "Unauthorized. Please log in." });
+      return res.render('login').status(401).json({ error: "Unauthorized. Please log in." });
     }
 
     const userId = req.session.userId; // Get the user ID from the session
@@ -480,7 +480,7 @@ app.post('/notifications/generate', async (req, res) => {
 app.get('/notifications/top', async (req, res) => {
   // Ensure the user is logged in
   if (!req.session || !req.session.userId) {
-    return res.status(401).json({ message: 'Unauthorized. Please log in.' });
+    return res.render('login').status(401).json({ message: 'Unauthorized. Please log in.' });
   }
 
   const userId = req.session.userId; // Get the logged-in user's ID
@@ -549,7 +549,7 @@ app.delete('/notifications/delete', (req, res) => {
 
   // Ensure the user is logged in
   if (!req.session || !req.session.userId) {
-    return res.status(401).json({ error: 'Unauthorized. Please log in.' });
+    return res.render('login').status(401).json({ error: 'Unauthorized. Please log in.' });
   }
 
   const userId = req.session.userId; // Get the logged-in user's ID
@@ -585,7 +585,7 @@ app.post('/notifications/favorite', (req, res) => {
 
   // Ensure the user is logged in
   if (!req.session || !req.session.userId) {
-    return res.status(401).json({ error: 'Unauthorized. Please log in.' });
+    return res.render('login').status(401).json({ error: 'Unauthorized. Please log in.' });
   }
 
   const userId = req.session.userId; // Get the logged-in user's ID
@@ -722,6 +722,29 @@ app.post('/login', async (req, res) => {
 app.get('/contact', (req, res) => {
   res.render('contact', { title: 'Contact Us' });
 });
+
+app.post('/contact', (req, res) => {
+  const { name, email, message } = req.body;
+
+  // Validate input
+  if (!name || !email || !message) {
+      return res.status(400).send('All fields are required.');
+  }
+
+  // Insert into the database
+  const query = `INSERT INTO contact_messages (name, email, message) VALUES (?, ?, ?)`;
+  db.query(query, [name, email, message], (err, result) => {
+      if (err) {
+          console.error('Error saving contact message:', err);
+          return res.status(500).send('Internal server error.');
+      }
+
+      console.log('Contact message saved successfully:', result);
+      res.redirect('contact')
+  });
+});
+
+
 
 // Handle 404 (Page Not Found)
 app.use((req, res) => {
