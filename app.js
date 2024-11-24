@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const mysql = require('mysql2');
 const { Configuration, OpenAIApi } = require('openai');
+const bcrypt = require('bcrypt'); // For password hashing
 
 
 
@@ -34,6 +35,29 @@ db.connect((err) => {
   }
   console.log('Connected to MySQL database');
 });
+
+const session = require('express-session');
+
+// Session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 1 day
+  }
+}));
+
+
+const isAuthenticated = (req, res, next) => {
+  if (!req.session.userId) {
+      return res.redirect('/login'); // Redirect to login if not authenticated
+  }
+  next();
+};
+
 
 // Set up the view engine and the path for EJS templates
 app.set('view engine', 'ejs');
@@ -110,16 +134,19 @@ app.post('/clear-history', (req, res) => {
 });
 
 // Dashboard Overview Route
-app.get('/dashboard', async (req, res) => {
+app.get('/dashboard', isAuthenticated, async (req, res) => {
+  const userId = req.session.userId; // Get the logged-in user's ID from the session
+
   const queries = {
-    rooms: `SELECT COUNT(*) AS count FROM room`,
-    readingTypes: `SELECT COUNT(DISTINCT ReadingType) AS count FROM reading`,
-    readings: `SELECT COUNT(*) AS count FROM reading`,
+    rooms: `SELECT COUNT(*) AS count FROM room WHERE user_id = ?`,
+    readingTypes: `SELECT COUNT(DISTINCT ReadingType) AS count FROM reading WHERE user_id = ?`,
+    readings: `SELECT COUNT(*) AS count FROM reading WHERE user_id = ?`,
     averages: `
           SELECT 
               ReadingType, 
               AVG(Value) AS avg_value 
           FROM reading 
+          WHERE user_id = ? 
           GROUP BY ReadingType
       `
   };
@@ -127,16 +154,16 @@ app.get('/dashboard', async (req, res) => {
   try {
     const [roomCount, readingTypeCount, readingCount, averages] = await Promise.all([
       new Promise((resolve, reject) => {
-        db.query(queries.rooms, (err, result) => (err ? reject(err) : resolve(result[0].count)));
+        db.query(queries.rooms, [userId], (err, result) => (err ? reject(err) : resolve(result[0].count)));
       }),
       new Promise((resolve, reject) => {
-        db.query(queries.readingTypes, (err, result) => (err ? reject(err) : resolve(result[0].count)));
+        db.query(queries.readingTypes, [userId], (err, result) => (err ? reject(err) : resolve(result[0].count)));
       }),
       new Promise((resolve, reject) => {
-        db.query(queries.readings, (err, result) => (err ? reject(err) : resolve(result[0].count)));
+        db.query(queries.readings, [userId], (err, result) => (err ? reject(err) : resolve(result[0].count)));
       }),
       new Promise((resolve, reject) => {
-        db.query(queries.averages, (err, result) => (err ? reject(err) : resolve(result)));
+        db.query(queries.averages, [userId], (err, result) => (err ? reject(err) : resolve(result)));
       }),
     ]);
 
@@ -170,6 +197,13 @@ app.get('/dashboard', async (req, res) => {
 
 // roomsData Route with Database Query
 app.get('/rooms-data', (req, res) => {
+  // Check if the user is logged in
+  if (!req.session || !req.session.userId) {
+    return res.status(401).send('Unauthorized. Please log in.');
+  }
+
+  const userId = req.session.userId; // Get the user ID from the session
+
   const readingsQuery = `
     SELECT 
       ReadingID, 
@@ -180,19 +214,29 @@ app.get('/rooms-data', (req, res) => {
       Value 
     FROM 
       reading 
+    WHERE 
+      user_id = ? 
     ORDER BY 
       Time
   `;
 
-  const roomsQuery = `SELECT RoomID, RoomNumber FROM room`;
+  const roomsQuery = `
+    SELECT 
+      RoomID, 
+      RoomNumber 
+    FROM 
+      room 
+    WHERE 
+      user_id = ?
+  `;
 
-  db.query(roomsQuery, (err, rooms) => {
+  db.query(roomsQuery, [userId], (err, rooms) => {
     if (err) {
       console.error('Error fetching rooms:', err);
       return res.status(500).send('Database error');
     }
 
-    db.query(readingsQuery, (err, readings) => {
+    db.query(readingsQuery, [userId], (err, readings) => {
       if (err) {
         console.error('Error fetching readings:', err);
         return res.status(500).send('Database error');
@@ -203,7 +247,7 @@ app.get('/rooms-data', (req, res) => {
       const filteredRooms = rooms.filter(room => uniqueRoomIDsWithData.includes(room.RoomID));
 
       res.render('roomsData', {
-        title: 'roomsData',
+        title: 'Rooms Data',
         rooms: filteredRooms,
         sensorData: readings
       });
@@ -212,13 +256,29 @@ app.get('/rooms-data', (req, res) => {
 });
 
 
+
 app.get('/notifications', (req, res) => {
+  // Check if the user is logged in
+  if (!req.session || !req.session.userId) {
+    return res.status(401).send('Unauthorized. Please log in.');
+  }
+
+  const userId = req.session.userId; // Get the user ID from the session
   const groupId = req.query.group || 1; // Default to GroupID 1 if none is selected
 
   console.log("Selected Group ID:", groupId);
 
-  const queryGroups = `SELECT GroupID, GroupName FROM advice_groups`;
-  db.query(queryGroups, (groupErr, groups) => {
+  const queryGroups = `
+    SELECT 
+      GroupID, 
+      GroupName 
+    FROM 
+      advice_groups 
+    WHERE 
+      user_id = ?
+  `;
+
+  db.query(queryGroups, [userId], (groupErr, groups) => {
     if (groupErr) {
       console.error("Error fetching advice groups:", groupErr);
       return res.status(500).send("Error fetching advice groups.");
@@ -226,12 +286,16 @@ app.get('/notifications', (req, res) => {
 
     if (groupId) {
       const queryNotifications = `
-              SELECT RoomNumber, AdviceText 
-              FROM notifications 
-              WHERE GroupID = ?;
-          `;
+        SELECT 
+          RoomNumber, 
+          AdviceText 
+        FROM 
+          notifications 
+        WHERE 
+          GroupID = ? AND user_id = ?
+      `;
 
-      db.query(queryNotifications, [groupId], (err, results) => {
+      db.query(queryNotifications, [groupId, userId], (err, results) => {
         if (err) {
           console.error("Error fetching notifications:", err);
           return res.status(500).send("Database query failed.");
@@ -240,8 +304,8 @@ app.get('/notifications', (req, res) => {
         const notifications = results.map(row => ({
           roomNumber: row.RoomNumber,
           adviceText: row.AdviceText
-      }));
-      
+        }));
+
         console.log("Fetched Notifications:", notifications);
 
         res.render('notifications', {
@@ -264,7 +328,14 @@ app.get('/notifications', (req, res) => {
 
 app.post('/notifications/generate', async (req, res) => {
   try {
-    console.log("Fetching room data...");
+    // Ensure user is logged in
+    if (!req.session || !req.session.userId) {
+      return res.status(401).json({ error: "Unauthorized. Please log in." });
+    }
+
+    const userId = req.session.userId; // Get the user ID from the session
+
+    console.log("Fetching room data for user:", userId);
 
     const query = `
           WITH RankedData AS (
@@ -277,13 +348,14 @@ app.post('/notifications/generate', async (req, res) => {
                   ROW_NUMBER() OVER (PARTITION BY r.RoomID ORDER BY RAND()) AS RowNum
               FROM reading r
               JOIN room rm ON r.RoomID = rm.RoomID
+              WHERE r.user_id = ? -- Ensure data is user-specific
           )
           SELECT RoomNumber, Value, ReadingType, Time
           FROM RankedData
           WHERE RowNum <= 3; -- Limit to 3 rows per RoomID
       `;
 
-    db.query(query, async (err, results) => {
+    db.query(query, [userId], async (err, results) => {
       if (err) {
         console.error("Database query error:", err);
         return res.status(500).json({ error: "Database query failed." });
@@ -348,41 +420,41 @@ app.post('/notifications/generate', async (req, res) => {
           .filter(line => line.trim().startsWith('Room'));
 
         console.log("Saving advice group to database...");
-         // Generate a meaningful group name with date and time
-         const now = new Date();
-         const formattedDate = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-         const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-         const groupName = `Advice Group - ${formattedDate} at ${formattedTime} (${recommendations.length} Recommendations)`;
+        // Generate a meaningful group name with date and time
+        const now = new Date();
+        const formattedDate = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const groupName = `Advice Group - ${formattedDate} at ${formattedTime} (${recommendations.length} Recommendations)`;
 
-         console.log("Saving advice group to database...");
-         db.query(
-             `INSERT INTO advice_groups (GroupName) VALUES (?)`,
-             [groupName],
-             (groupErr, groupResult) => {
-                 if (groupErr) {
-                     console.error("Error saving advice group:", groupErr);
-                     return res.status(500).json({ error: "Database error while creating advice group." });
-                 }
+        console.log("Saving advice group to database...");
+        db.query(
+          `INSERT INTO advice_groups (GroupName, user_id) VALUES (?, ?)`,
+          [groupName, userId], // Associate group with the logged-in user
+          (groupErr, groupResult) => {
+            if (groupErr) {
+              console.error("Error saving advice group:", groupErr);
+              return res.status(500).json({ error: "Database error while creating advice group." });
+            }
 
-                 const groupId = groupResult.insertId;
+            const groupId = groupResult.insertId;
 
-                 console.log("Saving recommendations...");
-                 const savePromises = recommendations.map(advice => {
-                     const match = advice.match(/Room (\d+): "(.*)"/);
-                     if (match) {
-                         const [, roomNumber, adviceText] = match;
-                         return new Promise((resolve, reject) => {
-                             db.query(
-                                 `INSERT INTO notifications (RoomNumber, AdviceText, GroupID) VALUES (?, ?, ?)`,
-                                 [roomNumber, adviceText, groupId],
-                                 (err, result) => {
-                                     if (err) return reject(err);
-                                     resolve(result);
-                                 }
-                             );
-                         });
-                     }
-                 });
+            console.log("Saving recommendations...");
+            const savePromises = recommendations.map(advice => {
+              const match = advice.match(/Room (\d+): "(.*)"/);
+              if (match) {
+                const [, roomNumber, adviceText] = match;
+                return new Promise((resolve, reject) => {
+                  db.query(
+                    `INSERT INTO notifications (RoomNumber, AdviceText, GroupID, user_id) VALUES (?, ?, ?, ?)`,
+                    [roomNumber, adviceText, groupId, userId], // Associate notification with user
+                    (err, result) => {
+                      if (err) return reject(err);
+                      resolve(result);
+                    }
+                  );
+                });
+              }
+            });
 
             Promise.all(savePromises)
               .then(() => res.json({ notifications: recommendations }))
@@ -406,20 +478,28 @@ app.post('/notifications/generate', async (req, res) => {
 
 // Top 10 Advice Route
 app.get('/notifications/top', async (req, res) => {
+  // Ensure the user is logged in
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: 'Unauthorized. Please log in.' });
+  }
+
+  const userId = req.session.userId; // Get the logged-in user's ID
+
   const query = `
       SELECT RoomNumber, AdviceText, GroupID
       FROM notifications
-      LIMIT 500; -- Fetch up to 50 rows to rank the top 10
+      WHERE user_id = ? -- Only fetch data specific to the logged-in user
+      LIMIT 500; -- Fetch up to 500 rows to rank the top 10
   `;
 
-  db.query(query, async (err, results) => {
+  db.query(query, [userId], async (err, results) => {
     if (err) {
       console.error('Error fetching data from the database:', err);
       return res.status(500).json({ message: 'Database error.' });
     }
 
     if (results.length === 0) {
-      return res.json({ topAdvice: [] }); // No advice available
+      return res.json({ topAdvice: [] }); // No advice available for the user
     }
 
     // Format the data for ChatGPT
@@ -467,19 +547,35 @@ app.get('/notifications/top', async (req, res) => {
 app.delete('/notifications/delete', (req, res) => {
   const { roomNumber, groupId } = req.body;
 
-  if (!roomNumber || !groupId) {
-      return res.status(400).json({ error: 'Room number and group ID are required.' });
+  // Ensure the user is logged in
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'Unauthorized. Please log in.' });
   }
 
-  const query = `DELETE FROM notifications WHERE RoomNumber = ? AND GroupID = ?`;
-  db.query(query, [roomNumber, groupId], (err) => {
-      if (err) {
-          console.error("Error deleting notification:", err);
-          return res.status(500).json({ error: 'Failed to delete notification.' });
-      }
-      res.json({ success: true });
+  const userId = req.session.userId; // Get the logged-in user's ID
+
+  // Validate input
+  if (!roomNumber || !groupId) {
+    return res.status(400).json({ error: 'Room number and group ID are required.' });
+  }
+
+  // Restrict deletion to notifications owned by the logged-in user
+  const query = `DELETE FROM notifications WHERE RoomNumber = ? AND GroupID = ? AND user_id = ?`;
+  db.query(query, [roomNumber, groupId, userId], (err, result) => {
+    if (err) {
+      console.error("Error deleting notification:", err);
+      return res.status(500).json({ error: 'Failed to delete notification.' });
+    }
+
+    // Check if a row was deleted
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Notification not found or does not belong to you.' });
+    }
+
+    res.json({ success: true });
   });
 });
+
 
 
 
@@ -487,45 +583,139 @@ app.delete('/notifications/delete', (req, res) => {
 app.post('/notifications/favorite', (req, res) => {
   const { roomNumber, groupId } = req.body;
 
-  if (!roomNumber || !groupId) {
-      return res.status(400).json({ error: 'Room number and group ID are required.' });
+  // Ensure the user is logged in
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'Unauthorized. Please log in.' });
   }
 
-  const query = `UPDATE notifications SET IsFavorite = 1 WHERE RoomNumber = ? AND GroupID = ?`;
-  db.query(query, [roomNumber, groupId], (err) => {
-      if (err) {
-          console.error("Error updating favorite status:", err);
-          return res.status(500).json({ error: 'Failed to mark as favorite.' });
-      }
-      res.json({ success: true });
+  const userId = req.session.userId; // Get the logged-in user's ID
+
+  // Validate input
+  if (!roomNumber || !groupId) {
+    return res.status(400).json({ error: 'Room number and group ID are required.' });
+  }
+
+  // Restrict the action to notifications owned by the logged-in user
+  const query = `UPDATE notifications SET IsFavorite = 1 WHERE RoomNumber = ? AND GroupID = ? AND user_id = ?`;
+  db.query(query, [roomNumber, groupId, userId], (err, result) => {
+    if (err) {
+      console.error("Error updating favorite status:", err);
+      return res.status(500).json({ error: 'Failed to mark as favorite.' });
+    }
+
+    // Check if a row was updated
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Notification not found or does not belong to you.' });
+    }
+
+    res.json({ success: true });
   });
 });
 
 
-
-
-
-
-
-
-// Login Route
 app.get('/login', (req, res) => {
-  res.render('login', { title: 'Login' });
+  console.log('Login page requested');
+  res.render('login', { title: 'Login - Home Automation Dashboard' });
 });
 
 app.get('/signup', (req, res) => {
-  res.render('signup', { title: 'Signup' });
+  console.log('signup page requested');
+  res.render('signup', { title: 'signup - Home Automation Dashboard' });
 });
 
-app.post('/login', (req, res) => {
-  // Login logic here
-  res.redirect('/dashboard');
+
+
+
+
+
+
+app.post('/signup', async (req, res) => {
+  const { name, email, password } = req.body;
+
+  try {
+    // Validate user input
+    if (!name || !email || !password) {
+      return res.status(400).send('All fields are required.');
+    }
+
+    // Check if the email is already in use
+    const emailCheckQuery = `SELECT COUNT(*) AS count FROM users WHERE email = ?`;
+    db.query(emailCheckQuery, [email], async (emailCheckErr, emailCheckResult) => {
+      if (emailCheckErr) {
+        console.error('Error checking email:', emailCheckErr);
+        return res.status(500).send('Internal server error.');
+      }
+
+      if (emailCheckResult[0].count > 0) {
+        return res.status(400).send('Email is already in use.');
+      }
+
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Insert the new user into the database
+      const query = `INSERT INTO users (name, email, password) VALUES (?, ?, ?)`;
+      db.query(query, [name, email, hashedPassword], (err, result) => {
+        if (err) {
+          console.error('Error creating user:', err);
+          return res.status(500).send('Error creating user.');
+        }
+
+        res.redirect('/login'); // Redirect to login after successful signup
+      });
+    });
+  } catch (error) {
+    console.error('Error during signup:', error);
+    res.status(500).send('Internal server error.');
+  }
 });
 
-app.post('/signup', (req, res) => {
-  // Signup logic here
-  res.redirect('/login'); // Redirect back to login after signup
+
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).send('Both email and password are required.');
+    }
+
+    // Query the database for the user by email
+    const query = `SELECT id, name, password FROM users WHERE email = ?`;
+    db.query(query, [email], async (err, results) => {
+      if (err) {
+        console.error('Error during login query:', err);
+        return res.status(500).send('Internal server error.');
+      }
+
+      if (results.length === 0) {
+        // If no user is found
+        return res.status(401).send('Invalid email or password.');
+      }
+
+      const user = results[0];
+
+      // Compare the hashed password
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).send('Invalid email or password.');
+      }
+
+      // Save user details in session (ensure session middleware is configured)
+      req.session.userId = user.id;
+      req.session.userName = user.name;
+
+      console.log(`User ${user.name} (ID: ${user.id}) logged in successfully.`);
+
+      // Redirect to the dashboard after successful login
+      res.redirect('/dashboard');
+    });
+  } catch (error) {
+    console.error('Error during login:', error);
+    res.status(500).send('Internal server error.');
+  }
 });
+
 
 
 // Contact Route
