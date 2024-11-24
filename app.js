@@ -348,35 +348,41 @@ app.post('/notifications/generate', async (req, res) => {
           .filter(line => line.trim().startsWith('Room'));
 
         console.log("Saving advice group to database...");
-        const groupName = `Advice Group ${Date.now()}`;
-        db.query(
-          `INSERT INTO advice_groups (GroupName) VALUES (?)`,
-          [groupName],
-          (groupErr, groupResult) => {
-            if (groupErr) {
-              console.error("Error saving advice group:", groupErr);
-              return res.status(500).json({ error: "Database error while creating advice group." });
-            }
+         // Generate a meaningful group name with date and time
+         const now = new Date();
+         const formattedDate = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+         const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+         const groupName = `Advice Group - ${formattedDate} at ${formattedTime} (${recommendations.length} Recommendations)`;
 
-            const groupId = groupResult.insertId;
+         console.log("Saving advice group to database...");
+         db.query(
+             `INSERT INTO advice_groups (GroupName) VALUES (?)`,
+             [groupName],
+             (groupErr, groupResult) => {
+                 if (groupErr) {
+                     console.error("Error saving advice group:", groupErr);
+                     return res.status(500).json({ error: "Database error while creating advice group." });
+                 }
 
-            console.log("Saving recommendations...");
-            const savePromises = recommendations.map(advice => {
-              const match = advice.match(/Room (\d+): "(.*)"/);
-              if (match) {
-                const [, roomNumber, adviceText] = match;
-                return new Promise((resolve, reject) => {
-                  db.query(
-                    `INSERT INTO notifications (RoomNumber, AdviceText, GroupID) VALUES (?, ?, ?)`,
-                    [roomNumber, adviceText, groupId],
-                    (err, result) => {
-                      if (err) return reject(err);
-                      resolve(result);
-                    }
-                  );
-                });
-              }
-            });
+                 const groupId = groupResult.insertId;
+
+                 console.log("Saving recommendations...");
+                 const savePromises = recommendations.map(advice => {
+                     const match = advice.match(/Room (\d+): "(.*)"/);
+                     if (match) {
+                         const [, roomNumber, adviceText] = match;
+                         return new Promise((resolve, reject) => {
+                             db.query(
+                                 `INSERT INTO notifications (RoomNumber, AdviceText, GroupID) VALUES (?, ?, ?)`,
+                                 [roomNumber, adviceText, groupId],
+                                 (err, result) => {
+                                     if (err) return reject(err);
+                                     resolve(result);
+                                 }
+                             );
+                         });
+                     }
+                 });
 
             Promise.all(savePromises)
               .then(() => res.json({ notifications: recommendations }))
