@@ -142,30 +142,72 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     readingTypes: `SELECT COUNT(DISTINCT ReadingType) AS count FROM reading WHERE user_id = ?`,
     readings: `SELECT COUNT(*) AS count FROM reading WHERE user_id = ?`,
     averages: `
-          SELECT 
-              ReadingType, 
-              AVG(Value) AS avg_value 
-          FROM reading 
-          WHERE user_id = ? 
-          GROUP BY ReadingType
-      `
+      SELECT 
+          ReadingType, 
+          AVG(Value) AS avg_value 
+      FROM reading 
+      WHERE user_id = ? 
+      GROUP BY ReadingType
+    `,
+    favoriteNotifications: `
+      SELECT RoomNumber, AdviceText 
+      FROM notifications 
+      WHERE IsFavorite = 1 AND user_id = ? 
+      LIMIT 6
+    `,
+    temperatureOverTime: `
+      SELECT Time, AVG(Value) AS avg_temp 
+      FROM reading 
+      WHERE user_id = ? AND ReadingType = 'Temperature'
+      GROUP BY Time 
+      ORDER BY Time
+    `,
+    humidityDistribution: `
+      SELECT RoomID, AVG(Value) AS avg_humidity 
+      FROM reading 
+      WHERE user_id = ? AND ReadingType = 'Humidity'
+      GROUP BY RoomID
+    `,
+    sensorTypes: `
+      SELECT ReadingType, COUNT(*) AS count 
+      FROM reading 
+      WHERE user_id = ? 
+      GROUP BY ReadingType
+    `,
   };
 
+  // Helper function to query the database
+  const queryDatabase = (query, params) =>
+    new Promise((resolve, reject) => {
+      db.query(query, params, (err, result) => (err ? reject(err) : resolve(result)));
+    });
+
   try {
-    const [roomCount, readingTypeCount, readingCount, averages] = await Promise.all([
-      new Promise((resolve, reject) => {
-        db.query(queries.rooms, [userId], (err, result) => (err ? reject(err) : resolve(result[0].count)));
-      }),
-      new Promise((resolve, reject) => {
-        db.query(queries.readingTypes, [userId], (err, result) => (err ? reject(err) : resolve(result[0].count)));
-      }),
-      new Promise((resolve, reject) => {
-        db.query(queries.readings, [userId], (err, result) => (err ? reject(err) : resolve(result[0].count)));
-      }),
-      new Promise((resolve, reject) => {
-        db.query(queries.averages, [userId], (err, result) => (err ? reject(err) : resolve(result)));
-      }),
+    // Execute all queries in parallel
+    const [
+      roomCountResult,
+      readingTypeCountResult,
+      readingCountResult,
+      averages,
+      favoriteNotifications,
+      temperatureData,
+      humidityData,
+      sensorDistribution,
+    ] = await Promise.all([
+      queryDatabase(queries.rooms, [userId]),
+      queryDatabase(queries.readingTypes, [userId]),
+      queryDatabase(queries.readings, [userId]),
+      queryDatabase(queries.averages, [userId]),
+      queryDatabase(queries.favoriteNotifications, [userId]),
+      queryDatabase(queries.temperatureOverTime, [userId]),
+      queryDatabase(queries.humidityDistribution, [userId]),
+      queryDatabase(queries.sensorTypes, [userId]),
     ]);
+
+    // Extract scalar values
+    const roomCount = roomCountResult[0]?.count || 0;
+    const readingTypeCount = readingTypeCountResult[0]?.count || 0;
+    const readingCount = readingCountResult[0]?.count || 0;
 
     // Calculate the number of sensors
     const sensorCount = roomCount * readingTypeCount;
@@ -173,21 +215,25 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     // Process averages for frontend
     const averageData = averages.map(row => ({
       type: row.ReadingType,
-      value: parseFloat(row.avg_value.toFixed(2)) // Format to 2 decimal places
+      value: parseFloat(row.avg_value.toFixed(2)), // Format to 2 decimal places
     }));
 
-    // Pass all data to the template
+    // Render the dashboard with all data
     res.render('dashboard', {
       title: 'Dashboard Overview',
       roomCount,
       sensorCount,
-      readingCount,
+      readingCount: readingCount >= 1000 ? `${(readingCount / 1000).toFixed(1)}K` : readingCount,
       readingTypeCount,
-      averageData // Pass dynamic averages to the template
+      averageData,
+      favoriteNotifications,
+      temperatureData,
+      humidityData,
+      sensorDistribution,
     });
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    res.status(500).send('Error fetching dashboard data.');
+    console.error('Error fetching dashboard data:', error.message);
+    res.status(500).send(`Error fetching dashboard data: ${error.message}`);
   }
 });
 
