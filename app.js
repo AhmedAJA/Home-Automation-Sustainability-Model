@@ -155,25 +155,6 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       WHERE IsFavorite = 1 AND user_id = ? 
       LIMIT 6
     `,
-    temperatureOverTime: `
-      SELECT Time, AVG(Value) AS avg_temp 
-      FROM reading 
-      WHERE user_id = ? AND ReadingType = 'Temperature'
-      GROUP BY Time 
-      ORDER BY Time
-    `,
-    humidityDistribution: `
-      SELECT RoomID, AVG(Value) AS avg_humidity 
-      FROM reading 
-      WHERE user_id = ? AND ReadingType = 'Humidity'
-      GROUP BY RoomID
-    `,
-    sensorTypes: `
-      SELECT ReadingType, COUNT(*) AS count 
-      FROM reading 
-      WHERE user_id = ? 
-      GROUP BY ReadingType
-    `,
   };
 
   // Helper function to query the database
@@ -183,42 +164,31 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     });
 
   try {
-    // Execute all queries in parallel
     const [
       roomCountResult,
       readingTypeCountResult,
       readingCountResult,
       averages,
       favoriteNotifications,
-      temperatureData,
-      humidityData,
-      sensorDistribution,
     ] = await Promise.all([
       queryDatabase(queries.rooms, [userId]),
       queryDatabase(queries.readingTypes, [userId]),
       queryDatabase(queries.readings, [userId]),
       queryDatabase(queries.averages, [userId]),
       queryDatabase(queries.favoriteNotifications, [userId]),
-      queryDatabase(queries.temperatureOverTime, [userId]),
-      queryDatabase(queries.humidityDistribution, [userId]),
-      queryDatabase(queries.sensorTypes, [userId]),
     ]);
 
-    // Extract scalar values
     const roomCount = roomCountResult[0]?.count || 0;
     const readingTypeCount = readingTypeCountResult[0]?.count || 0;
     const readingCount = readingCountResult[0]?.count || 0;
 
-    // Calculate the number of sensors
     const sensorCount = roomCount * readingTypeCount;
 
-    // Process averages for frontend
     const averageData = averages.map(row => ({
       type: row.ReadingType,
       value: parseFloat(row.avg_value.toFixed(2)), // Format to 2 decimal places
     }));
 
-    // Render the dashboard with all data
     res.render('dashboard', {
       title: 'Dashboard Overview',
       roomCount,
@@ -227,17 +197,12 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       readingTypeCount,
       averageData,
       favoriteNotifications,
-      temperatureData,
-      humidityData,
-      sensorDistribution,
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error.message);
     res.status(500).send(`Error fetching dashboard data: ${error.message}`);
   }
 });
-
-
 
 
 

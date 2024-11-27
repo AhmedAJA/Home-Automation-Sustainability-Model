@@ -35,96 +35,190 @@
 
     <div class="main-content" id="main-content">
         <div class="dashboard-container">
-    
+            <h1>Dashboard </h1>
+
+
             <!-- Favorite Notifications Section -->
             <section class="favorite-notifications-dash">
                 <h2>Favorite Notifications</h2>
                 <div class="notifications-dash-grid">
-                    <% if (favoriteNotifications.length > 0) { %>
-                        <% favoriteNotifications.forEach(notification => { %>
+                    <% if (favoriteNotifications.length> 0) { %>
+                        <% favoriteNotifications.forEach(notification=> { %>
                             <div class="notification-dash-card">
                                 <div class="notification-dash-text">
-                                    <p><strong>Room:</strong> <%= notification.RoomNumber %></p>
-                                    <p><%= notification.AdviceText %></p>
+                                    <p><strong>Room:</strong>
+                                        <%= notification.RoomNumber %>
+                                    </p>
+                                    <p>
+                                        <%= notification.AdviceText %>
+                                    </p>
                                 </div>
                             </div>
-                        <% }) %>
-                    <% } else { %>
-                        <p class="no-notifications-dash">You currently have no favorite notifications.</p>
-                    <% } %>
+                            <% }) %>
+                                <% } else { %>
+                                    <p class="no-notifications-dash">You currently have no favorite notifications.</p>
+                                    <% } %>
                 </div>
             </section>
 
-      
-    
             <!-- Stats Overview Section -->
-            
             <div class="stats-grid">
                 <div class="stats-card">
                     <h3>Rooms</h3>
-                    <p><%= roomCount %></p>
+                    <p>
+                        <%= roomCount %>
+                    </p>
                     <i class="icon fas fa-home"></i>
                 </div>
                 <div class="stats-card">
                     <h3>Sensors</h3>
-                    <p><%= sensorCount %></p>
+                    <p>
+                        <%= sensorCount %>
+                    </p>
                     <i class="icon fas fa-microchip"></i>
                 </div>
                 <div class="stats-card">
                     <h3>Readings</h3>
-                    <p><%= (readingCount >= 1000 ? (readingCount / 1000).toFixed(1) + 'K' : readingCount) %></p>
+                    <p>
+                        <%= readingCount %>
+                    </p>
                     <i class="icon fas fa-database"></i>
-                </div>                
+                </div>
                 <div class="stats-card">
                     <h3>Reading Type</h3>
-                    <p><%= readingTypeCount %></p>
+                    <p>
+                        <%= readingTypeCount %>
+                    </p>
                     <i class="icon fas fa-cogs"></i>
                 </div>
             </div>
-    
+
             <!-- Sensor Averages Section -->
-            <h2>Averages</h2>
             <div class="sensor-averages">
-                <% averageData.forEach(sensor => { %>
+                <% averageData.forEach(sensor=> { %>
                     <div class="stats-card">
                         <div class="icon">
-                            <% if (sensor.type === 'CO2') { %>
+                            <% if (sensor.type==='CO2' ) { %>
                                 <i class="fas fa-cloud"></i>
-                            <% } else if (sensor.type === 'Humidity') { %>
-                                <i class="fas fa-tint"></i>
-                            <% } else if (sensor.type === 'Light') { %>
-                                <i class="fas fa-lightbulb"></i>
-                            <% } else if (sensor.type === 'PIR') { %>
-                                <i class="fas fa-eye"></i>
-                            <% } else if (sensor.type === 'Temperature') { %>
-                                <i class="fas fa-thermometer-half"></i>
-                            <% } %>
+                                <% } else if (sensor.type==='Humidity' ) { %>
+                                    <i class="fas fa-tint"></i>
+                                    <% } else if (sensor.type==='Light' ) { %>
+                                        <i class="fas fa-lightbulb"></i>
+                                        <% } else if (sensor.type==='PIR' ) { %>
+                                            <i class="fas fa-eye"></i>
+                                            <% } else if (sensor.type==='Temperature' ) { %>
+                                                <i class="fas fa-thermometer-half"></i>
+                                                <% } %>
                         </div>
-                        <h3><%= sensor.type %></h3>
+                        <h3>
+                            <%= sensor.type %>
+                        </h3>
                         <p>
                             avg: <%= sensor.value %>
-                            <% if (sensor.type === 'CO2') { %>
-                                ppm
-                            <% } else if (sensor.type === 'Humidity') { %>
-                                %
-                            <% } else if (sensor.type === 'Light') { %>
-                                lx
-                            <% } else if (sensor.type === 'PIR') { %>
-                                detections
-                            <% } else if (sensor.type === 'Temperature') { %>
-                                °C
-                            <% } %>
+                                <% if (sensor.type==='CO2' ) { %>
+                                    ppm
+                                    <% } else if (sensor.type==='Humidity' ) { %>
+                                        %
+                                        <% } else if (sensor.type==='Light' ) { %>
+                                            lx
+                                            <% } else if (sensor.type==='PIR' ) { %>
+                                                detections
+                                                <% } else if (sensor.type==='Temperature' ) { %>
+                                                    °C
+                                                    <% } %>
                         </p>
                     </div>
-                <% }); %>
+                    <% }); %>
             </div>
+
+            <!-- Sensor Averages Graph Section -->
             
+            <div class="chart-card">
+                <div id="sensor-averages-chart" style="width: 100%; height: 400px;"></div>
+              </div>
+              
+
+
         </div>
     </div>
-    
-   
 
     <script src="/js/frontend.js"></script>
+    <script>
+        // Data for Sensor Averages Chart
+        const sensorAverages = <%- JSON.stringify(averageData) %>;
+
+if (sensorAverages && sensorAverages.length) {
+  const options = {
+    series: [{
+      name: "Average Value",
+      data: sensorAverages.map(sensor => sensor.value),
+    }],
+    chart: {
+      type: 'bar',
+      height: 400,
+      width: '100%',
+      toolbar: {
+        show: false,
+      },
+      background: '#ffffff',
+    },
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '50%',
+        borderRadius: 5,
+      },
+    },
+    fill: {
+      colors: ['#4e73df'],
+    },
+    dataLabels: {
+      enabled: true,
+      style: {
+        colors: ['#333'],
+        fontSize: '12px',
+        fontWeight: 'bold',
+      },
+      offsetY: -10,
+    },
+    xaxis: {
+      categories: sensorAverages.map(sensor => sensor.type),
+      title: {
+        text: "Sensor Type",
+        style: {
+          fontSize: '14px',
+          fontWeight: 'bold',
+        },
+      },
+    },
+    yaxis: {
+      title: {
+        text: "Average Value",
+        style: {
+          fontSize: '14px',
+          fontWeight: 'bold',
+        },
+      },
+    },
+    title: {
+      text: "Sensor Averages",
+      align: 'center',
+      style: {
+        fontSize: '16px',
+        fontWeight: '600',
+      },
+    },
+  };
+
+  const chart = new ApexCharts(document.querySelector("#sensor-averages-chart"), options);
+  chart.render();
+} else {
+  console.error('No data available for the chart.');
+}
+
+    </script>
+
+
 </body>
 
 </html>
