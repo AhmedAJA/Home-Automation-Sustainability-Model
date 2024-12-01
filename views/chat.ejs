@@ -22,13 +22,13 @@
             <li><a href="/login"><i class="fas fa-user"></i> Login</a></li>
             <li><a href="/about"><i class="fas fa-info-circle"></i> About Us</a></li>
             <li><a href="/contact"><i class="fas fa-envelope"></i> Contact Us</a></li>
-          </ul>
+        </ul>
     </div>
 
-     <!-- Hamburger menu -->
-     <div class="toggle-btn" onclick="toggleSidebar()">
+    <!-- Hamburger menu -->
+    <div class="toggle-btn" onclick="toggleSidebar()">
         &#9776;
-     </div>
+    </div>
     
     <!-- Main content -->
     <div class="main-content" id="main-content">
@@ -36,7 +36,7 @@
         <section class="chat-container">
             <div class="card">
                 <h3>Ask ChatGPT for Home Automation Tips</h3>
-                <div id="chatHistory" class="chat-history">
+                <div id="chatHistory" class="chat-history" aria-live="polite">
                     <!-- Chat history will be displayed here -->
                 </div>
                 <div class="chat-input-container">
@@ -50,69 +50,85 @@
     <script src="/js/frontend.js"></script>
     <script>
         // Store conversation history in an array
-        const chatHistory = [];
+const chatHistory = [];
 
-        async function askChatGPT() {
-            const userInput = document.getElementById('userInput').value;
+async function askChatGPT() {
+    const userInput = document.getElementById('userInput').value.trim();
 
-            if (userInput.trim() === "") {
-                displayMessage("Please enter a question.", "system");
-                return;
-            }
+    if (userInput === "") {
+        displayMessage("Please enter a question.", "system");
+        return;
+    }
 
-            // Display user's message
-            displayMessage(userInput, "user");
-            document.getElementById('userInput').value = ""; // Clear input
+    // Display user's message
+    displayMessage(userInput, "user");
+    document.getElementById('userInput').value = ""; // Clear input
 
-            try {
-                const response = await fetch('/ask-chatgpt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ input: userInput })
-                });
+    // Display loading message while waiting for the response
+    const loadingMessage = displayMessage("Thinking...", "system");
 
-                const data = await response.json();
-                const chatGPTResponse = data.response ? data.response : "No response received from ChatGPT.";
+    try {
+        const response = await fetch('/ask-chatgpt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input: userInput })
+        });
 
-                // Display ChatGPT's response
-                displayMessage(chatGPTResponse, "chatgpt");
-            } catch (error) {
-                console.error('Error fetching response from ChatGPT:', error);
-                displayMessage("Sorry, there was an error communicating with ChatGPT. Please try again later.", "system");
-            }
-        }
+        const data = await response.json();
+        const chatGPTResponse = data.response || "No response received from ChatGPT.";
 
-        // Function to display messages in the chat history
-        function displayMessage(text, sender) {
-            const chatHistoryDiv = document.getElementById('chatHistory');
+        // Remove the "Thinking..." message before displaying the response
+        removeMessage(loadingMessage);
 
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', sender);
+        // Display ChatGPT's response
+        displayMessage(chatGPTResponse, "chatgpt");
 
-            if (sender === "user") {
-                messageDiv.classList.add('message', 'user');
-                messageDiv.style.textAlign = "right";
-                messageDiv.style.color = "blue";
-            } else if (sender === "chatgpt") {
-                messageDiv.classList.add('message', 'chatgpt');
-                messageDiv.style.textAlign = "left";
-                messageDiv.style.color = "green";
-            } else if (sender === "system") {
-                messageDiv.classList.add('message', 'system');
-                messageDiv.style.textAlign = "center";
-                messageDiv.style.color = "gray";
-            }
+    } catch (error) {
+        console.error('Error fetching response from ChatGPT:', error);
+        // Remove the "Thinking..." message on error
+        removeMessage(loadingMessage);
+        displayMessage("Sorry, there was an error communicating with ChatGPT. Please try again later.", "system");
+    }
+}
 
-            messageDiv.innerText = text;
-            chatHistoryDiv.appendChild(messageDiv);
+// Function to display messages in the chat history
+function displayMessage(text, sender) {
+    const chatHistoryDiv = document.getElementById('chatHistory');
 
-            // Scroll to the bottom of the chat history
-            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', sender);
 
-            // Add message to chat history array
-            chatHistory.push({ sender, text });
-        }
+    if (sender === "user") {
+        messageDiv.style.textAlign = "right";
+        messageDiv.style.color = "blue";
+    } else if (sender === "chatgpt") {
+        messageDiv.style.textAlign = "left";
+        messageDiv.style.color = "green";
+    } else if (sender === "system") {
+        messageDiv.style.textAlign = "center";
+        messageDiv.style.color = "gray";
+    }
+
+    messageDiv.innerText = text;
+    chatHistoryDiv.appendChild(messageDiv);
+
+    // Scroll to the bottom of the chat history
+    chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+
+    // Add message to chat history array
+    chatHistory.push({ sender, text });
+
+    return messageDiv;  // Return the message div so it can be removed later
+}
+
+// Function to remove a message
+function removeMessage(messageDiv) {
+    if (messageDiv && messageDiv.parentNode) {
+        messageDiv.parentNode.removeChild(messageDiv);
+    }
+}
+
     </script>
-    
+
 </body>
 </html>
