@@ -94,8 +94,17 @@ app.get('/chat', (req, res) => {
 });
 
 // Route to handle ChatGPT API requests with memory
+// Assuming you are using express-session to manage user sessions
 app.post('/ask-chatgpt', async (req, res) => {
-  const userId = req.body.userId || "default_user"; // For simplicity, using a single session for now
+  // Get the userId from the session (or return an error if not logged in)
+  const userId = req.session.userId; 
+
+  // If the user is not logged in, respond with a login prompt
+  if (!userId) {
+    return res.json({ response: 'Please log in to use this feature.' });
+  }
+
+  // The user input from the body of the POST request
   const userInput = req.body.input;
 
   // Initialize conversation history for the user if it doesn't exist
@@ -103,28 +112,33 @@ app.post('/ask-chatgpt', async (req, res) => {
     conversationHistories[userId] = [];
   }
 
-  // Add user's message to conversation history
-  conversationHistories[userId].push({ role: "user", content: userInput });
+  // Add the user's message to the conversation history for this specific user
+  conversationHistories[userId].push({ role: 'user', content: userInput });
 
   try {
+    // Make a request to the OpenAI API to generate a response based on conversation history
     const response = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: conversationHistories[userId], // Pass conversation history to OpenAI
+      model: 'gpt-3.5-turbo',
+      messages: conversationHistories[userId], // Pass the specific user's conversation history
       max_tokens: 150,
       temperature: 0.7,
     });
 
+    // Get ChatGPT's response from the API
     const chatGPTResponse = response.data.choices[0].message.content.trim();
 
-    // Add ChatGPT's response to the conversation history
-    conversationHistories[userId].push({ role: "assistant", content: chatGPTResponse });
+    // Add ChatGPT's response to the conversation history for this specific user
+    conversationHistories[userId].push({ role: 'assistant', content: chatGPTResponse });
 
+    // Send the ChatGPT response back to the client
     res.json({ response: chatGPTResponse });
+
   } catch (error) {
     console.error('Error calling ChatGPT API:', error);
     res.status(500).json({ response: 'Sorry, there was an error with the ChatGPT API.' });
   }
 });
+
 
 // Optional: Endpoint to clear the conversation history for a user
 app.post('/clear-history', (req, res) => {
