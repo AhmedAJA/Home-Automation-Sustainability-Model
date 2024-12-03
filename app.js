@@ -94,50 +94,91 @@ app.get('/chat', (req, res) => {
 });
 
 // Route to handle ChatGPT API requests with memory
-// Assuming you are using express-session to manage user sessions
 app.post('/ask-chatgpt', async (req, res) => {
-  // Get the userId from the session (or return an error if not logged in)
-  const userId = req.session.userId; 
+  const userId = req.session.userId;
 
-  // If the user is not logged in, respond with a login prompt
   if (!userId) {
-    return res.json({ response: 'Please log in to use this feature.' });
+      return res.json({ response: 'Please log in to use this feature.' });
   }
 
-  // The user input from the body of the POST request
-  const userInput = req.body.input;
+  const userInput = req.body.input.trim();
 
-  // Initialize conversation history for the user if it doesn't exist
-  if (!conversationHistories[userId]) {
-    conversationHistories[userId] = [];
+  if (!userInput) {
+      return res.json({ response: 'Please enter a question.' });
   }
-
-  // Add the user's message to the conversation history for this specific user
-  conversationHistories[userId].push({ role: 'user', content: userInput });
 
   try {
-    // Make a request to the OpenAI API to generate a response based on conversation history
-    const response = await openai.createChatCompletion({
-      model: 'gpt-3.5-turbo',
-      messages: conversationHistories[userId], // Pass the specific user's conversation history
-      max_tokens: 150,
-      temperature: 0.7,
-    });
+      // Step 1: Extract RoomNumber from user's query
+      const roomMatch = userInput.match(/room (\d+)/i); // Match phrases like "room 413"
+      let specificRoomNumber = null;
 
-    // Get ChatGPT's response from the API
-    const chatGPTResponse = response.data.choices[0].message.content.trim();
+      if (roomMatch) {
+          specificRoomNumber = roomMatch[1]; // Extract RoomNumber
+      }
 
-    // Add ChatGPT's response to the conversation history for this specific user
-    conversationHistories[userId].push({ role: 'assistant', content: chatGPTResponse });
+      // Step 2: Handle logic for specific room
+      let responseContext = {};
+      if (specificRoomNumber) {
+          // Fetch averages for 6-hour intervals using RoomNumber
+          const [roomData] = await db.promise().query(
+              `SELECT 
+                  r.ReadingType, 
+                  DATE_FORMAT(r.Time - INTERVAL MOD(HOUR(r.Time), 6) HOUR, '%Y-%m-%d %H:00:00') AS TimeBucket,
+                  AVG(r.Value) AS AvgValue
+               FROM reading r
+               JOIN room rm ON r.RoomID = rm.RoomID
+               WHERE rm.RoomNumber = ? AND rm.user_id = ?
+               GROUP BY r.ReadingType, TimeBucket
+               ORDER BY TimeBucket`,
+              [specificRoomNumber, userId]
+          );
 
-    // Send the ChatGPT response back to the client
-    res.json({ response: chatGPTResponse });
+          responseContext = {
+              RoomNumber: specificRoomNumber,
+              Data: roomData,
+          };
+      } else {
+          // If no specific room is mentioned, list all available room numbers
+          const [rooms] = await db.promise().query(
+              'SELECT RoomNumber FROM room WHERE user_id = ?',
+              [userId]
+          );
+          responseContext = {
+              Rooms: rooms.map(room => room.RoomNumber),
+          };
+      }
+
+      // Step 3: Send data and user query to GPT
+      const gptResponse = await openai.createChatCompletion({
+          model: 'gpt-4o',
+          messages: [
+              {
+                  role: 'system',
+                  content: `You are an intelligent assistant that helps users manage their home automation data. You will answer questions based on the provided data.`
+              },
+              {
+                  role: 'user',
+                  content: `Here is the data you can use:
+                  - ${specificRoomNumber ? `Room ${specificRoomNumber}` : 'All Rooms'}: ${JSON.stringify(responseContext)}
+                  
+                  Question: ${userInput}`
+              }
+          ]
+      });
+
+      // Step 4: Extract GPT's response
+      const responseMessage = gptResponse.data.choices[0].message.content.trim();
+
+      // Send the response back to the client
+      res.json({ response: responseMessage });
 
   } catch (error) {
-    console.error('Error calling ChatGPT API:', error);
-    res.status(500).json({ response: 'Sorry, there was an error with the ChatGPT API.' });
+      console.error('Error processing user query:', error.response?.data || error.message);
+      res.status(500).json({ response: 'An error occurred while processing your query. Please try again.' });
   }
 });
+
+
 
 
 // Optional: Endpoint to clear the conversation history for a user
@@ -156,7 +197,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     readingTypes: `SELECT COUNT(DISTINCT ReadingType) AS count FROM reading WHERE user_id = ?`,
     readings: `SELECT COUNT(*) AS count FROM reading WHERE user_id = ?`,
     averages: `
-      SELECT 
+      SELECT  
           ReadingType, 
           AVG(Value) AS avg_value 
       FROM reading 
@@ -167,7 +208,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       SELECT RoomNumber, AdviceText 
       FROM notifications 
       WHERE IsFavorite = 1 AND user_id = ? 
-      LIMIT 6
+      LIMIT 10
     `,
   };
 
@@ -220,7 +261,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
 
 
 
-// roomsData Route with Database Query
+// Rooms Data Route with Database Query
 app.get('/rooms-data', (req, res) => {
   // Check if the user is logged in
   if (!req.session || !req.session.userId) {
@@ -377,7 +418,7 @@ app.post('/notifications/generate', async (req, res) => {
           )
           SELECT RoomNumber, Value, ReadingType, Time
           FROM RankedData
-          WHERE RowNum <= 3; -- Limit to 3 rows per RoomID
+          WHERE RowNum <= 30; -- Limit to 3 rows per RoomID
       `;
 
     db.query(query, [userId], async (err, results) => {
@@ -431,12 +472,12 @@ app.post('/notifications/generate', async (req, res) => {
 
       try {
         const response = await openai.createChatCompletion({
-          model: "gpt-3.5-turbo",
+          model: "gpt-4o",
           messages: [
             { role: "system", content: "You are an energy optimization expert." },
             { role: "user", content: prompt },
           ],
-          max_tokens: 700,
+          max_tokens: 1000,
           temperature: 0.9,
         });
 
@@ -546,7 +587,7 @@ app.get('/notifications/top', async (req, res) => {
 
     try {
       const response = await openai.createChatCompletion({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o',
         messages: [
           { role: 'system', content: 'You are an energy optimization expert.' },
           { role: 'user', content: prompt },
@@ -740,6 +781,10 @@ app.post('/login', async (req, res) => {
     res.status(500).send('Internal server error.');
   }
 });
+
+
+
+
 
 
 

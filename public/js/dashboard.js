@@ -10,15 +10,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to filter sensor data by room and type
     function filterDataByRoomAndType(roomId, readingType) {
-        const filteredData = sensorData
-            .filter(data => data.RoomID == roomId && data.ReadingType === readingType)
-            .map(data => ({
-                x: new Date(data.Time), 
-                y: data.Value
-            }));
+        console.log("Filtering for RoomID:", roomId, "ReadingType:", readingType);
+    
+        const filteredData = sensorData.filter(data => {
+            const roomMatch = String(data.RoomID) === String(roomId);
+            const typeMatch = data.ReadingType.toLowerCase() === readingType.toLowerCase();
+            if (roomMatch && typeMatch) {
+                console.log("Match found:", data);
+            }
+            return roomMatch && typeMatch;
+        }).map(data => ({
+            x: new Date(data.Time), 
+            y: data.Value
+        }));
+    
         console.log(`Filtered data for RoomID: ${roomId}, ReadingType: ${readingType}:`, filteredData);
         return filteredData;
     }
+    
 
     // Function to create an ApexChart
     function createChart(chartId, seriesName, dataPoints) {
