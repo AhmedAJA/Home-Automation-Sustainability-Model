@@ -392,47 +392,237 @@ app.get('/notifications', (req, res) => {
   });
 });
 
+// app.post('/notifications/generate', async (req, res) => {
+//   try {
+//     // Ensure user is logged in
+//     if (!req.session || !req.session.userId) {
+//       return res.render('login').status(401).json({ error: "Unauthorized. Please log in." });
+//     }
+
+//     const userId = req.session.userId; // Get the user ID from the session
+
+//     console.log("Fetching room data for user:", userId);
+
+//     const query = `
+//           WITH RankedData AS (
+//               SELECT 
+//                   r.RoomID, 
+//                   rm.RoomNumber, 
+//                   r.Value, 
+//                   r.ReadingType, 
+//                   r.Time,
+//                   ROW_NUMBER() OVER (PARTITION BY r.RoomID ORDER BY RAND()) AS RowNum
+//               FROM reading r
+//               JOIN room rm ON r.RoomID = rm.RoomID
+//               WHERE r.user_id = ? -- Ensure data is user-specific
+//           )
+//           SELECT RoomNumber, Value, ReadingType, Time
+//           FROM RankedData
+//           WHERE RowNum <= 32; -- Limit to 3 rows per RoomID
+//       `;
+
+//     db.query(query, [userId], async (err, results) => {
+//       if (err) {
+//         console.error("Database query error:", err);
+//         return res.status(500).json({ error: "Database query failed." });
+//       }
+
+//       if (results.length === 0) {
+//         console.log("No data found for advice generation.");
+//         return res.json({ notifications: [] });
+//       }
+
+//       console.log("Grouping data for OpenAI...");
+//       const groupedData = results.reduce((acc, row) => {
+//         if (!acc[row.RoomNumber]) acc[row.RoomNumber] = [];
+//         acc[row.RoomNumber].push({
+//           Time: row.Time,
+//           Value: row.Value.toFixed(2),
+//           ReadingType: row.ReadingType,
+//         });
+//         return acc;
+//       }, {});
+
+//       console.log("Sending data to OpenAI...");
+//       const inputData = Object.entries(groupedData).map(([roomNumber, readings]) => ({
+//         RoomNumber: roomNumber,
+//         Readings: readings,
+//       }));
+
+//       // const prompt = `
+//       //         You are an energy and environment optimization expert. Based on the following room sensor data, generate dynamic, actionable, and diverse energy-saving recommendations.
+
+//       //         Avoid repeating similar advice. Be creative, considering the type of sensor readings (e.g., temperature, CO2 levels, humidity) and possible actions specific to home automation systems. Examples of actions might include:
+//       //         - Turning off lights at certain times.
+//       //         - Adjusting thermostats for efficiency.
+//       //         - Opening windows to improve air quality.
+//       //         - Turning off idle electronic devices.
+//       //         - Using smart plugs to cut energy consumption.
+
+//       //         The advice should be:
+//       //         - Specific to each room.
+//       //         - Based on the sensor readings provided.
+//       //         - Use human-friendly timestamps (e.g., "9:30 PM on August 25, 2013").
+//       //         - In a professional format like this:
+//       //           Room [RoomNumber]: "[Action] at [Time] to [Goal]."
+
+//       //         Data:
+//       //         ${JSON.stringify(inputData)}
+//       //     `;
+//       const prompt = `
+// You are an expert in energy and environment optimization, specializing in home automation systems. Your task is to analyze the provided room sensor data and generate dynamic, actionable, and diverse energy-saving recommendations.
+
+// ### Objective:
+// Create specific, actionable, and creative advice tailored to each room, leveraging the sensor readings provided. Ensure the recommendations align with the sensor data (e.g., temperature, CO2 levels, humidity) and suggest energy-saving or environment-optimizing actions.
+
+// ### Guidelines:
+// 1. **Action Diversity:**
+//    - Incorporate a variety of creative actions, considering automation possibilities.
+
+// 2. **Relevance to Sensor Data:**
+//    - Tailor recommendations to match the specific sensor readings (e.g., high CO2 levels prompt actions for air quality improvement).
+//    - Use room-specific insights.
+
+// 3. **Human-Friendly Formatting:**
+//    - Write timestamps in human-readable formats, e.g., "9:30 PM on August 25, 2013."
+//    - Provide recommendations in the format below.
+
+// 4. **Professional Format:**
+//    Each recommendation should follow this format:
+//    - **Room [RoomNumber]: "[Action] at [Time] to [Goal]."**
+
+// ### Examples of Actions:
+// - Turn off lights in [RoomNumber] at [Time] to save energy when occupancy is low.
+// - Adjust thermostat in [RoomNumber] at [Time] to maintain efficiency and comfort.
+// - Open windows in [RoomNumber] at [Time] to improve air quality when CO2 levels are high.
+// - Use smart plugs in [RoomNumber] to turn off idle electronic devices at [Time] and reduce consumption.
+
+// ### Provided Sensor Data:
+// ${JSON.stringify(inputData)}
+// `;
+
+
+//       try {
+//         const response = await openai.createChatCompletion({
+//           model: "gpt-4o",
+//           messages: [
+//             { role: "system", content: "You are an energy optimization expert." },
+//             { role: "user", content: prompt },
+//           ],
+//           max_tokens: 1000,
+//           temperature: 0.9,
+//         });
+
+//         const recommendations = response.data.choices[0].message.content
+//           .split('\n')
+//           .filter(line => line.trim().startsWith('Room'));
+
+//         console.log("Saving advice group to database...");
+//         // Generate a meaningful group name with date and time
+//         const now = new Date();
+//         const formattedDate = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+//         const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+//         const groupName = `Advice Group - ${formattedDate} at ${formattedTime} (${recommendations.length} Recommendations)`;
+
+//         console.log("Saving advice group to database...");
+//         db.query(
+//           `INSERT INTO advice_groups (GroupName, user_id) VALUES (?, ?)`,
+//           [groupName, userId], // Associate group with the logged-in user
+//           (groupErr, groupResult) => {
+//             if (groupErr) {
+//               console.error("Error saving advice group:", groupErr);
+//               return res.status(500).json({ error: "Database error while creating advice group." });
+//             }
+
+//             const groupId = groupResult.insertId;
+
+//             console.log("Saving recommendations...");
+//             const savePromises = recommendations.map(advice => {
+//               const match = advice.match(/Room (\d+): "(.*)"/);
+//               if (match) {
+//                 const [, roomNumber, adviceText] = match;
+//                 return new Promise((resolve, reject) => {
+//                   db.query(
+//                     `INSERT INTO notifications (RoomNumber, AdviceText, GroupID, user_id) VALUES (?, ?, ?, ?)`,
+//                     [roomNumber, adviceText, groupId, userId], // Associate notification with user
+//                     (err, result) => {
+//                       if (err) return reject(err);
+//                       resolve(result);
+//                     }
+//                   );
+//                 });
+//               }
+//             });
+
+//             Promise.all(savePromises)
+//               .then(() => res.json({ notifications: recommendations }))
+//               .catch(saveErr => {
+//                 console.error("Error saving notifications:", saveErr);
+//                 return res.status(500).json({ error: "Database error while saving notifications." });
+//               });
+//           }
+//         );
+//       } catch (openAIError) {
+//         console.error("OpenAI API error:", openAIError);
+//         return res.status(500).json({ error: "OpenAI API error. Please check your configuration." });
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Unhandled error in /notifications/generate:", error);
+//     res.status(500).json({ error: "An unexpected error occurred." });
+//   }
+// });
+
+
+
 app.post('/notifications/generate', async (req, res) => {
   try {
     // Ensure user is logged in
     if (!req.session || !req.session.userId) {
-      return res.render('login').status(401).json({ error: "Unauthorized. Please log in." });
+      return res.status(401).json({ error: "Unauthorized. Please log in." });
     }
 
     const userId = req.session.userId; // Get the user ID from the session
+    console.log(`[INFO] Fetching room data for user: ${userId}`);
 
-    console.log("Fetching room data for user:", userId);
-
+    // Query to fetch room and sensor data for the user
     const query = `
-          WITH RankedData AS (
-              SELECT 
-                  r.RoomID, 
-                  rm.RoomNumber, 
-                  r.Value, 
-                  r.ReadingType, 
-                  r.Time,
-                  ROW_NUMBER() OVER (PARTITION BY r.RoomID ORDER BY RAND()) AS RowNum
-              FROM reading r
-              JOIN room rm ON r.RoomID = rm.RoomID
-              WHERE r.user_id = ? -- Ensure data is user-specific
-          )
-          SELECT RoomNumber, Value, ReadingType, Time
-          FROM RankedData
-          WHERE RowNum <= 30; -- Limit to 3 rows per RoomID
-      `;
+    WITH RankedData AS (
+      SELECT 
+        RoomID, 
+        Value, 
+        ReadingType, 
+        Time,
+        ROW_NUMBER() OVER (PARTITION BY RoomID ORDER BY RAND()) AS RowNum
+      FROM reading
+      WHERE user_id = ?
+    )
+    SELECT RoomID, Value, ReadingType, Time
+    FROM RankedData
+    WHERE RowNum <= 32; -- Limit to 32 rows across all rooms
+  `;
+  
+  
+
+   
 
     db.query(query, [userId], async (err, results) => {
       if (err) {
-        console.error("Database query error:", err);
+        console.error(`[ERROR] Database query failed: ${err}`);
         return res.status(500).json({ error: "Database query failed." });
       }
 
       if (results.length === 0) {
-        console.log("No data found for advice generation.");
-        return res.json({ notifications: [] });
+        console.log("[INFO] No sensor data found for advice generation.");
+        results.push({
+          RoomNumber: "Default Room",
+          Value: 0,
+          ReadingType: "Default Type",
+          Time: new Date().toISOString(),
+        });
       }
 
-      console.log("Grouping data for OpenAI...");
+      console.log("[INFO] Grouping data for OpenAI processing...");
       const groupedData = results.reduce((acc, row) => {
         if (!acc[row.RoomNumber]) acc[row.RoomNumber] = [];
         acc[row.RoomNumber].push({
@@ -443,34 +633,25 @@ app.post('/notifications/generate', async (req, res) => {
         return acc;
       }, {});
 
-      console.log("Sending data to OpenAI...");
       const inputData = Object.entries(groupedData).map(([roomNumber, readings]) => ({
         RoomNumber: roomNumber,
         Readings: readings,
       }));
 
       const prompt = `
-              You are an energy and environment optimization expert. Based on the following room sensor data, generate dynamic, actionable, and diverse energy-saving recommendations.
+You are an expert in energy and environment optimization, specializing in home automation systems. Your task is to analyze the provided room sensor data and generate dynamic, actionable, and diverse energy-saving recommendations.
 
-              Avoid repeating similar advice. Be creative, considering the type of sensor readings (e.g., temperature, CO2 levels, humidity) and possible actions specific to home automation systems. Examples of actions might include:
-              - Turning off lights at certain times.
-              - Adjusting thermostats for efficiency.
-              - Opening windows to improve air quality.
-              - Turning off idle electronic devices.
-              - Using smart plugs to cut energy consumption.
+### Guidelines:
+1. Create specific, actionable advice tailored to each room based on sensor readings.
+2. Recommendations should align with the data (e.g., CO2, temperature, humidity) and suggest energy-saving or environment-improving actions.
+3. Format: "Room [RoomNumber]: '[Action] at [Time] to [Goal].'"
 
-              The advice should be:
-              - Specific to each room.
-              - Based on the sensor readings provided.
-              - Use human-friendly timestamps (e.g., "9:30 PM on August 25, 2013").
-              - In a professional format like this:
-                Room [RoomNumber]: "[Action] at [Time] to [Goal]."
-
-              Data:
-              ${JSON.stringify(inputData)}
-          `;
+### Provided Sensor Data:
+${JSON.stringify(inputData)}
+`;
 
       try {
+        console.log("[INFO] Sending data to OpenAI...");
         const response = await openai.createChatCompletion({
           model: "gpt-4o",
           messages: [
@@ -478,68 +659,105 @@ app.post('/notifications/generate', async (req, res) => {
             { role: "user", content: prompt },
           ],
           max_tokens: 1000,
-          temperature: 0.9,
+          temperature: 0.7,
         });
 
-        const recommendations = response.data.choices[0].message.content
+        let recommendations = response.data.choices[0]?.message?.content
           .split('\n')
-          .filter(line => line.trim().startsWith('Room'));
+          .filter(line => line.trim().startsWith('Room')) || [];
 
-        console.log("Saving advice group to database...");
-        // Generate a meaningful group name with date and time
+        if (recommendations.length === 0) {
+          console.log("[INFO] No recommendations generated by OpenAI, fetching random advice from notifications table...");
+          const randomAdviceQuery = `
+            SELECT RoomNumber, AdviceText 
+            FROM notifications 
+            WHERE user_id = ? 
+            ORDER BY RAND() 
+            LIMIT 20; -- Fetch up to 5 random recommendations
+          `;
+
+          const randomAdvice = await new Promise((resolve, reject) => {
+            db.query(randomAdviceQuery, [userId], (randomErr, randomResults) => {
+              if (randomErr) {
+                return reject(randomErr);
+              }
+              resolve(randomResults);
+            });
+          });
+
+          if (randomAdvice.length > 0) {
+            recommendations = randomAdvice.map(advice => 
+              `Room ${advice.RoomNumber}: "${advice.AdviceText}"`
+            );
+          } else {
+            console.log("[INFO] No advice found in the notifications table, adding a default fallback recommendation.");
+            recommendations = [
+              'Room Default: "Optimize thermostat settings for energy efficiency during off-peak hours."',
+            ];
+          }
+        }
+
+        console.log("[INFO] Saving recommendations to the database...");
+
+        // Create advice group
         const now = new Date();
         const formattedDate = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
         const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const groupName = `Advice Group - ${formattedDate} at ${formattedTime} (${recommendations.length} Recommendations)`;
 
-        console.log("Saving advice group to database...");
         db.query(
           `INSERT INTO advice_groups (GroupName, user_id) VALUES (?, ?)`,
-          [groupName, userId], // Associate group with the logged-in user
+          [groupName, userId],
           (groupErr, groupResult) => {
             if (groupErr) {
-              console.error("Error saving advice group:", groupErr);
-              return res.status(500).json({ error: "Database error while creating advice group." });
+              console.error(`[ERROR] Failed to save advice group: ${groupErr}`);
+              return res.status(500).json({ error: "Failed to create advice group." });
             }
 
             const groupId = groupResult.insertId;
 
-            console.log("Saving recommendations...");
+            // Save each recommendation as a notification
             const savePromises = recommendations.map(advice => {
-              const match = advice.match(/Room (\d+): "(.*)"/);
+              const match = advice.match(/Room (\d+|Default): "(.*)"/);
               if (match) {
                 const [, roomNumber, adviceText] = match;
                 return new Promise((resolve, reject) => {
                   db.query(
                     `INSERT INTO notifications (RoomNumber, AdviceText, GroupID, user_id) VALUES (?, ?, ?, ?)`,
-                    [roomNumber, adviceText, groupId, userId], // Associate notification with user
-                    (err, result) => {
-                      if (err) return reject(err);
-                      resolve(result);
-                    }
+                    [roomNumber, adviceText, groupId, userId],
+                    (err) => (err ? reject(err) : resolve())
                   );
                 });
               }
             });
 
             Promise.all(savePromises)
-              .then(() => res.json({ notifications: recommendations }))
+              .then(() => {
+                console.log("[INFO] Recommendations successfully saved.");
+                res.json({ notifications: recommendations });
+              })
               .catch(saveErr => {
-                console.error("Error saving notifications:", saveErr);
-                return res.status(500).json({ error: "Database error while saving notifications." });
+                console.error(`[ERROR] Failed to save notifications: ${saveErr}`);
+                res.status(500).json({ error: "Failed to save notifications." });
               });
           }
         );
       } catch (openAIError) {
-        console.error("OpenAI API error:", openAIError);
-        return res.status(500).json({ error: "OpenAI API error. Please check your configuration." });
+        console.error(`[ERROR] OpenAI API error: ${openAIError}`);
+        res.status(500).json({ error: "Failed to generate recommendations from OpenAI." });
       }
     });
   } catch (error) {
-    console.error("Unhandled error in /notifications/generate:", error);
+    console.error(`[ERROR] Unhandled error in /notifications/generate: ${error}`);
     res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
+
+
+
+
+
+
 
 
 // Top 10 Advice Route
@@ -555,7 +773,7 @@ app.get('/notifications/top', async (req, res) => {
       SELECT RoomNumber, AdviceText, GroupID
       FROM notifications
       WHERE user_id = ? -- Only fetch data specific to the logged-in user
-      LIMIT 500; -- Fetch up to 500 rows to rank the top 10
+      LIMIT 1000; -- Fetch up to 500 rows to rank the top 10
   `;
 
   db.query(query, [userId], async (err, results) => {
@@ -573,17 +791,45 @@ app.get('/notifications/top', async (req, res) => {
       (row) => `Room ${row.RoomNumber}: "${row.AdviceText}"`
     );
 
+    // const prompt = `
+    //       You are an energy and environment optimization expert. The following is a list of energy-saving advice generated for different rooms and groups.
+
+    //       Please rank the top 10 most valuable pieces of advice based on their potential energy-saving impact, creativity, and relevance. Provide the ranking in this format:
+
+    //       - Room [RoomNumber]: [Simplified advice in bullet points]
+    //       - remove the date from the advice
+
+    //       Advice List:
+    //       ${adviceList.join('\n')}
+    //   `;
+
     const prompt = `
-          You are an energy and environment optimization expert. The following is a list of energy-saving advice generated for different rooms and groups.
+You are an energy and environment optimization expert. Your task is to rank the top 10 pieces of energy-saving advice from the provided list. The ranking should consider the following criteria:
 
-          Please rank the top 10 most valuable pieces of advice based on their potential energy-saving impact, creativity, and relevance. Provide the ranking in this format:
+### Ranking Criteria:
+1. **Energy-Saving Impact**:
+   - How effective the advice is in reducing energy consumption.
+2. **Creativity**:
+   - The uniqueness and innovation of the suggestion.
+3. **Relevance**:
+   - How well the advice aligns with typical energy-saving goals and home automation systems.
 
-          - Room [RoomNumber]: [Simplified advice in bullet points]
-          - remove the date from the advice
+### Output Requirements:
+- **Format**:
+  Rank the top 10 pieces of advice in descending order of value using this format:
+  - **Room [RoomNumber]: [Simplified advice in bullet points]**
+- **Modification**:
+  Remove any date or timestamp from the advice to make it concise.
 
-          Advice List:
-          ${adviceList.join('\n')}
-      `;
+### Example Output:
+- Room 101: Adjust thermostat to 22°C during the day to maintain efficiency.
+- Room 202: Use smart plugs to automatically power down idle devices.
+- Room 303: Open windows when CO2 levels are high to improve air quality.
+
+### Advice List:
+${adviceList.join('\n')}
+`;
+
 
     try {
       const response = await openai.createChatCompletion({
