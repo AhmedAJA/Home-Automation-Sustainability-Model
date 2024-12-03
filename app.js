@@ -90,7 +90,7 @@ app.get('/about', (req, res) => {
 
 // Chat with ChatGPT Route
 app.get('/chat', (req, res) => {
-  res.render('chat', { title: 'Chat with ChatGPT' });
+  res.render('chat', { title: 'Chatbot Assistant' });
 });
 
 // Route to handle ChatGPT API requests with memory
@@ -177,8 +177,6 @@ app.post('/ask-chatgpt', async (req, res) => {
       res.status(500).json({ response: 'An error occurred while processing your query. Please try again.' });
   }
 });
-
-
 
 
 // Optional: Endpoint to clear the conversation history for a user
@@ -322,7 +320,6 @@ app.get('/rooms-data', (req, res) => {
 });
 
 
-
 app.get('/notifications', (req, res) => {
   // Check if the user is logged in
   if (!req.session || !req.session.userId) {
@@ -392,237 +389,45 @@ app.get('/notifications', (req, res) => {
   });
 });
 
-// app.post('/notifications/generate', async (req, res) => {
-//   try {
-//     // Ensure user is logged in
-//     if (!req.session || !req.session.userId) {
-//       return res.render('login').status(401).json({ error: "Unauthorized. Please log in." });
-//     }
-
-//     const userId = req.session.userId; // Get the user ID from the session
-
-//     console.log("Fetching room data for user:", userId);
-
-//     const query = `
-//           WITH RankedData AS (
-//               SELECT 
-//                   r.RoomID, 
-//                   rm.RoomNumber, 
-//                   r.Value, 
-//                   r.ReadingType, 
-//                   r.Time,
-//                   ROW_NUMBER() OVER (PARTITION BY r.RoomID ORDER BY RAND()) AS RowNum
-//               FROM reading r
-//               JOIN room rm ON r.RoomID = rm.RoomID
-//               WHERE r.user_id = ? -- Ensure data is user-specific
-//           )
-//           SELECT RoomNumber, Value, ReadingType, Time
-//           FROM RankedData
-//           WHERE RowNum <= 32; -- Limit to 3 rows per RoomID
-//       `;
-
-//     db.query(query, [userId], async (err, results) => {
-//       if (err) {
-//         console.error("Database query error:", err);
-//         return res.status(500).json({ error: "Database query failed." });
-//       }
-
-//       if (results.length === 0) {
-//         console.log("No data found for advice generation.");
-//         return res.json({ notifications: [] });
-//       }
-
-//       console.log("Grouping data for OpenAI...");
-//       const groupedData = results.reduce((acc, row) => {
-//         if (!acc[row.RoomNumber]) acc[row.RoomNumber] = [];
-//         acc[row.RoomNumber].push({
-//           Time: row.Time,
-//           Value: row.Value.toFixed(2),
-//           ReadingType: row.ReadingType,
-//         });
-//         return acc;
-//       }, {});
-
-//       console.log("Sending data to OpenAI...");
-//       const inputData = Object.entries(groupedData).map(([roomNumber, readings]) => ({
-//         RoomNumber: roomNumber,
-//         Readings: readings,
-//       }));
-
-//       // const prompt = `
-//       //         You are an energy and environment optimization expert. Based on the following room sensor data, generate dynamic, actionable, and diverse energy-saving recommendations.
-
-//       //         Avoid repeating similar advice. Be creative, considering the type of sensor readings (e.g., temperature, CO2 levels, humidity) and possible actions specific to home automation systems. Examples of actions might include:
-//       //         - Turning off lights at certain times.
-//       //         - Adjusting thermostats for efficiency.
-//       //         - Opening windows to improve air quality.
-//       //         - Turning off idle electronic devices.
-//       //         - Using smart plugs to cut energy consumption.
-
-//       //         The advice should be:
-//       //         - Specific to each room.
-//       //         - Based on the sensor readings provided.
-//       //         - Use human-friendly timestamps (e.g., "9:30 PM on August 25, 2013").
-//       //         - In a professional format like this:
-//       //           Room [RoomNumber]: "[Action] at [Time] to [Goal]."
-
-//       //         Data:
-//       //         ${JSON.stringify(inputData)}
-//       //     `;
-//       const prompt = `
-// You are an expert in energy and environment optimization, specializing in home automation systems. Your task is to analyze the provided room sensor data and generate dynamic, actionable, and diverse energy-saving recommendations.
-
-// ### Objective:
-// Create specific, actionable, and creative advice tailored to each room, leveraging the sensor readings provided. Ensure the recommendations align with the sensor data (e.g., temperature, CO2 levels, humidity) and suggest energy-saving or environment-optimizing actions.
-
-// ### Guidelines:
-// 1. **Action Diversity:**
-//    - Incorporate a variety of creative actions, considering automation possibilities.
-
-// 2. **Relevance to Sensor Data:**
-//    - Tailor recommendations to match the specific sensor readings (e.g., high CO2 levels prompt actions for air quality improvement).
-//    - Use room-specific insights.
-
-// 3. **Human-Friendly Formatting:**
-//    - Write timestamps in human-readable formats, e.g., "9:30 PM on August 25, 2013."
-//    - Provide recommendations in the format below.
-
-// 4. **Professional Format:**
-//    Each recommendation should follow this format:
-//    - **Room [RoomNumber]: "[Action] at [Time] to [Goal]."**
-
-// ### Examples of Actions:
-// - Turn off lights in [RoomNumber] at [Time] to save energy when occupancy is low.
-// - Adjust thermostat in [RoomNumber] at [Time] to maintain efficiency and comfort.
-// - Open windows in [RoomNumber] at [Time] to improve air quality when CO2 levels are high.
-// - Use smart plugs in [RoomNumber] to turn off idle electronic devices at [Time] and reduce consumption.
-
-// ### Provided Sensor Data:
-// ${JSON.stringify(inputData)}
-// `;
-
-
-//       try {
-//         const response = await openai.createChatCompletion({
-//           model: "gpt-4o",
-//           messages: [
-//             { role: "system", content: "You are an energy optimization expert." },
-//             { role: "user", content: prompt },
-//           ],
-//           max_tokens: 1000,
-//           temperature: 0.9,
-//         });
-
-//         const recommendations = response.data.choices[0].message.content
-//           .split('\n')
-//           .filter(line => line.trim().startsWith('Room'));
-
-//         console.log("Saving advice group to database...");
-//         // Generate a meaningful group name with date and time
-//         const now = new Date();
-//         const formattedDate = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-//         const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-//         const groupName = `Advice Group - ${formattedDate} at ${formattedTime} (${recommendations.length} Recommendations)`;
-
-//         console.log("Saving advice group to database...");
-//         db.query(
-//           `INSERT INTO advice_groups (GroupName, user_id) VALUES (?, ?)`,
-//           [groupName, userId], // Associate group with the logged-in user
-//           (groupErr, groupResult) => {
-//             if (groupErr) {
-//               console.error("Error saving advice group:", groupErr);
-//               return res.status(500).json({ error: "Database error while creating advice group." });
-//             }
-
-//             const groupId = groupResult.insertId;
-
-//             console.log("Saving recommendations...");
-//             const savePromises = recommendations.map(advice => {
-//               const match = advice.match(/Room (\d+): "(.*)"/);
-//               if (match) {
-//                 const [, roomNumber, adviceText] = match;
-//                 return new Promise((resolve, reject) => {
-//                   db.query(
-//                     `INSERT INTO notifications (RoomNumber, AdviceText, GroupID, user_id) VALUES (?, ?, ?, ?)`,
-//                     [roomNumber, adviceText, groupId, userId], // Associate notification with user
-//                     (err, result) => {
-//                       if (err) return reject(err);
-//                       resolve(result);
-//                     }
-//                   );
-//                 });
-//               }
-//             });
-
-//             Promise.all(savePromises)
-//               .then(() => res.json({ notifications: recommendations }))
-//               .catch(saveErr => {
-//                 console.error("Error saving notifications:", saveErr);
-//                 return res.status(500).json({ error: "Database error while saving notifications." });
-//               });
-//           }
-//         );
-//       } catch (openAIError) {
-//         console.error("OpenAI API error:", openAIError);
-//         return res.status(500).json({ error: "OpenAI API error. Please check your configuration." });
-//       }
-//     });
-//   } catch (error) {
-//     console.error("Unhandled error in /notifications/generate:", error);
-//     res.status(500).json({ error: "An unexpected error occurred." });
-//   }
-// });
-
-
 
 app.post('/notifications/generate', async (req, res) => {
   try {
-    // Ensure user is logged in
     if (!req.session || !req.session.userId) {
-      return res.status(401).json({ error: "Unauthorized. Please log in." });
+      return res.render('login').status(401).json({ error: "Unauthorized. Please log in." });
     }
 
-    const userId = req.session.userId; // Get the user ID from the session
-    console.log(`[INFO] Fetching room data for user: ${userId}`);
+    const userId = req.session.userId;
+    console.log("Fetching room data for user:", userId);
 
-    // Query to fetch room and sensor data for the user
     const query = `
-    WITH RankedData AS (
-      SELECT 
-        RoomID, 
-        Value, 
-        ReadingType, 
-        Time,
-        ROW_NUMBER() OVER (PARTITION BY RoomID ORDER BY RAND()) AS RowNum
-      FROM reading
-      WHERE user_id = ?
-    )
-    SELECT RoomID, Value, ReadingType, Time
-    FROM RankedData
-    WHERE RowNum <= 32; -- Limit to 32 rows across all rooms
-  `;
-  
-  
-
-   
+          WITH RankedData AS (
+              SELECT 
+                  r.RoomID, 
+                  rm.RoomNumber, 
+                  r.Value, 
+                  r.ReadingType, 
+                  r.Time,
+                  ROW_NUMBER() OVER (PARTITION BY r.RoomID ORDER BY RAND()) AS RowNum
+              FROM reading r
+              JOIN room rm ON r.RoomID = rm.RoomID
+              WHERE r.user_id = ? 
+          )
+          SELECT RoomNumber, Value, ReadingType, Time
+          FROM RankedData
+          WHERE RowNum <= 32;
+      `;
 
     db.query(query, [userId], async (err, results) => {
       if (err) {
-        console.error(`[ERROR] Database query failed: ${err}`);
+        console.error("Database query error:", err);
         return res.status(500).json({ error: "Database query failed." });
       }
 
       if (results.length === 0) {
-        console.log("[INFO] No sensor data found for advice generation.");
-        results.push({
-          RoomNumber: "Default Room",
-          Value: 0,
-          ReadingType: "Default Type",
-          Time: new Date().toISOString(),
-        });
+        console.log("No data found for advice generation.");
+        return res.json({ notifications: [] });
       }
 
-      console.log("[INFO] Grouping data for OpenAI processing...");
       const groupedData = results.reduce((acc, row) => {
         if (!acc[row.RoomNumber]) acc[row.RoomNumber] = [];
         acc[row.RoomNumber].push({
@@ -638,20 +443,49 @@ app.post('/notifications/generate', async (req, res) => {
         Readings: readings,
       }));
 
-      const prompt = `
-You are an expert in energy and environment optimization, specializing in home automation systems. Your task is to analyze the provided room sensor data and generate dynamic, actionable, and diverse energy-saving recommendations.
+      console.log("Sending data to OpenAI...");
 
-### Guidelines:
-1. Create specific, actionable advice tailored to each room based on sensor readings.
-2. Recommendations should align with the data (e.g., CO2, temperature, humidity) and suggest energy-saving or environment-improving actions.
-3. Format: "Room [RoomNumber]: '[Action] at [Time] to [Goal].'"
+const prompt = `
+You are an expert in energy and environment optimization, specializing in creative, actionable advice for home automation systems. Your task is to analyze the provided room sensor data and generate highly innovative, practical, and varied energy-saving recommendations.
+
+### Objective:
+Provide specific and diverse advice tailored to each room. The advice should leverage sensor readings (e.g., temperature, CO2 levels, humidity) and suggest creative actions using home automation technologies.
+
+### REQUIRED FORMAT:
+- Each recommendation must be on a separate line in this format:
+  Room [RoomNumber]: "[Creative Action] at [Time] on [Date] to [Goal]."
+
+### GUIDELINES:
+1. **Creativity and Variety**:
+   - Avoid generic advice like "Turn off lights" unless relevant. Incorporate creative suggestions using automation systems (e.g., smart thermostats, automated blinds, air purifiers).
+   - Tailor each action to the unique conditions of the room and sensor data.
+
+2. **Relevance to Sensor Data**:
+   - Use specific sensor readings to inspire actionable insights.
+   - Examples:
+     - High CO2 levels → Suggest ventilation, air purifiers, or CO2 alerts.
+     - High humidity → Recommend dehumidifiers or adjusting HVAC settings.
+     - Temperature fluctuations → Suggest thermostat adjustments or shading.
+
+3. **Human-Friendly Timestamps**:
+   - Use natural language for times and dates (e.g., "9:30 PM on August 25, 2013").
+
+4. **Professional Tone**:
+   Each recommendation must be clear, actionable, and engaging, with a focus on achieving energy savings or improved air quality.
+
+### EXAMPLES:
+- Room 413: "Adjust the thermostat to 23°C at 6:00 PM on August 27, 2013, to maintain comfort while minimizing energy use."
+- Room 415: "Open a window at 9:00 AM on August 28, 2013, to lower high CO2 levels and improve air quality."
+- Room 417: "Ensure electronic devices are turned off at 6:00 PM on August 28, 2013, due to no movement detected."
+- Room 421: "Dim or turn off lights at 1:00 AM on August 26, 2013, to conserve energy during low lighting needs."
 
 ### Provided Sensor Data:
 ${JSON.stringify(inputData)}
 `;
 
+
+
       try {
-        console.log("[INFO] Sending data to OpenAI...");
         const response = await openai.createChatCompletion({
           model: "gpt-4o",
           messages: [
@@ -659,105 +493,99 @@ ${JSON.stringify(inputData)}
             { role: "user", content: prompt },
           ],
           max_tokens: 1000,
-          temperature: 0.7,
+          temperature: 0.9,
         });
 
-        let recommendations = response.data.choices[0]?.message?.content
-          .split('\n')
-          .filter(line => line.trim().startsWith('Room')) || [];
+        const rawContent = response.data.choices[0]?.message?.content || "";
+        console.log("AI Raw Content:", rawContent);
+
+        // Updated Recommendation Extraction Logic
+        const recommendations = rawContent
+          .split('\n') // Split content into lines
+          .map(line => line.trim()) // Trim whitespace
+          .filter(line => line && line.includes(':')) // Filter lines that contain ':' (to identify valid advice)
+          .map(line => {
+            const match = line.match(/Room (\d+|General):\s*"(.*)"/); // Match lines starting with "Room"
+            if (match) {
+              const [, roomNumber, adviceText] = match;
+              return { roomNumber, adviceText };
+            } else {
+              // Handle advice without "Room" keyword
+              return { roomNumber: "General", adviceText: line };
+            }
+          });
+
+        console.log("Extracted Recommendations:", recommendations);
 
         if (recommendations.length === 0) {
-          console.log("[INFO] No recommendations generated by OpenAI, fetching random advice from notifications table...");
-          const randomAdviceQuery = `
+          console.log("No valid recommendations extracted. Falling back...");
+          const fallbackQuery = `
             SELECT RoomNumber, AdviceText 
             FROM notifications 
             WHERE user_id = ? 
             ORDER BY RAND() 
-            LIMIT 20; -- Fetch up to 5 random recommendations
+            LIMIT 20;
           `;
 
-          const randomAdvice = await new Promise((resolve, reject) => {
-            db.query(randomAdviceQuery, [userId], (randomErr, randomResults) => {
-              if (randomErr) {
-                return reject(randomErr);
-              }
-              resolve(randomResults);
+          const fallbackResults = await new Promise((resolve, reject) => {
+            db.query(fallbackQuery, [userId], (fallbackErr, fallbackRows) => {
+              if (fallbackErr) return reject(fallbackErr);
+              resolve(fallbackRows);
             });
           });
 
-          if (randomAdvice.length > 0) {
-            recommendations = randomAdvice.map(advice => 
-              `Room ${advice.RoomNumber}: "${advice.AdviceText}"`
-            );
-          } else {
-            console.log("[INFO] No advice found in the notifications table, adding a default fallback recommendation.");
-            recommendations = [
-              'Room Default: "Optimize thermostat settings for energy efficiency during off-peak hours."',
-            ];
-          }
+          recommendations.push(...fallbackResults.map(row => ({
+            roomNumber: row.RoomNumber,
+            adviceText: row.AdviceText,
+          })));
         }
 
-        console.log("[INFO] Saving recommendations to the database...");
-
-        // Create advice group
+        console.log("Saving advice group to database...");
         const now = new Date();
-        const formattedDate = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-        const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const groupName = `Advice Group - ${formattedDate} at ${formattedTime} (${recommendations.length} Recommendations)`;
+        const groupName = `Advice Group - ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
 
         db.query(
           `INSERT INTO advice_groups (GroupName, user_id) VALUES (?, ?)`,
           [groupName, userId],
           (groupErr, groupResult) => {
             if (groupErr) {
-              console.error(`[ERROR] Failed to save advice group: ${groupErr}`);
-              return res.status(500).json({ error: "Failed to create advice group." });
+              console.error("Error saving advice group:", groupErr);
+              return res.status(500).json({ error: "Database error while creating advice group." });
             }
 
             const groupId = groupResult.insertId;
 
-            // Save each recommendation as a notification
-            const savePromises = recommendations.map(advice => {
-              const match = advice.match(/Room (\d+|Default): "(.*)"/);
-              if (match) {
-                const [, roomNumber, adviceText] = match;
-                return new Promise((resolve, reject) => {
-                  db.query(
-                    `INSERT INTO notifications (RoomNumber, AdviceText, GroupID, user_id) VALUES (?, ?, ?, ?)`,
-                    [roomNumber, adviceText, groupId, userId],
-                    (err) => (err ? reject(err) : resolve())
-                  );
-                });
-              }
+            const savePromises = recommendations.map(({ roomNumber, adviceText }) => {
+              return new Promise((resolve, reject) => {
+                db.query(
+                  `INSERT INTO notifications (RoomNumber, AdviceText, GroupID, user_id) VALUES (?, ?, ?, ?)`,
+                  [roomNumber, adviceText, groupId, userId],
+                  (err, result) => {
+                    if (err) return reject(err);
+                    resolve(result);
+                  }
+                );
+              });
             });
 
             Promise.all(savePromises)
-              .then(() => {
-                console.log("[INFO] Recommendations successfully saved.");
-                res.json({ notifications: recommendations });
-              })
+              .then(() => res.json({ notifications: recommendations }))
               .catch(saveErr => {
-                console.error(`[ERROR] Failed to save notifications: ${saveErr}`);
-                res.status(500).json({ error: "Failed to save notifications." });
+                console.error("Error saving notifications:", saveErr);
+                return res.status(500).json({ error: "Database error while saving notifications." });
               });
           }
         );
       } catch (openAIError) {
-        console.error(`[ERROR] OpenAI API error: ${openAIError}`);
-        res.status(500).json({ error: "Failed to generate recommendations from OpenAI." });
+        console.error("OpenAI API error:", openAIError);
+        return res.status(500).json({ error: "OpenAI API error. Please check your configuration." });
       }
     });
   } catch (error) {
-    console.error(`[ERROR] Unhandled error in /notifications/generate: ${error}`);
+    console.error("Unhandled error in /notifications/generate:", error);
     res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
-
-
-
-
-
-
 
 
 // Top 10 Advice Route
@@ -889,8 +717,6 @@ app.delete('/notifications/delete', (req, res) => {
 });
 
 
-
-
 // Route to mark a notification as favorite
 app.post('/notifications/favorite', (req, res) => {
   const { roomNumber, groupId } = req.body;
@@ -934,10 +760,6 @@ app.get('/signup', (req, res) => {
   console.log('signup page requested');
   res.render('signup', { title: 'signup - Home Automation Dashboard' });
 });
-
-
-
-
 
 
 
@@ -1028,12 +850,6 @@ app.post('/login', async (req, res) => {
   }
 });
 
-
-
-
-
-
-
 // Contact Route
 app.get('/contact', (req, res) => {
   res.render('contact', { title: 'Contact Us' });
@@ -1059,7 +875,6 @@ app.post('/contact', (req, res) => {
       res.redirect('contact')
   });
 });
-
 
 
 // Handle 404 (Page Not Found)

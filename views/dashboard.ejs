@@ -19,7 +19,7 @@
             <li><a href="/"><i class="fas fa-home"></i> Home</a></li>
             <li><a href="/features"><i class="fas fa-cogs"></i> Features</a></li>
             <li><a href="/dashboard" class="active"><i class="fas fa-chart-pie"></i> Dashboard</a></li>
-            <li><a href="/chat"><i class="fas fa-comments"></i> Chat with ChatGPT</a></li>
+            <li><a href="/chat"><i class="fas fa-comments"></i> Chatbot Assistant</a></li>
             <li><a href="/notifications"><i class="fas fa-bell"></i> Notifications</a></li>
             <li><a href="/rooms-data"><i class="fas fa-database"></i> Rooms Data</a></li>
             <li><a href="/login"><i class="fas fa-user"></i> Login</a></li>
@@ -95,41 +95,42 @@
 
             <!-- Sensor Averages Section -->
             <div class="sensor-averages">
-                <% averageData.forEach(sensor=> { %>
-                    <div class="stats-card">
-                        <div class="icon">
-                            <% if (sensor.type==='CO2' ) { %>
-                                <i class="fas fa-cloud"></i>
-                                <% } else if (sensor.type==='Humidity' ) { %>
-                                    <i class="fas fa-tint"></i>
-                                    <% } else if (sensor.type==='Light' ) { %>
-                                        <i class="fas fa-lightbulb"></i>
-                                        <% } else if (sensor.type==='PIR' ) { %>
-                                            <i class="fas fa-eye"></i>
-                                            <% } else if (sensor.type==='Temperature' ) { %>
-                                                <i class="fas fa-thermometer-half"></i>
-                                                <% } %>
-                        </div>
-                        <h3>
-                            <%= sensor.type %>
-                        </h3>
-                        <p>
-                            avg: <%= sensor.value %>
-                                <% if (sensor.type==='CO2' ) { %>
-                                    ppm
-                                    <% } else if (sensor.type==='Humidity' ) { %>
-                                        %
-                                        <% } else if (sensor.type==='Light' ) { %>
-                                            lx
-                                            <% } else if (sensor.type==='PIR' ) { %>
-                                                detections
-                                                <% } else if (sensor.type==='Temperature' ) { %>
-                                                    °C
-                                                    <% } %>
-                        </p>
-                    </div>
-                    <% }); %>
+              <% averageData.forEach(sensor => { %>
+                <div class="stats-card">
+                  <div class="icon">
+                    <% if (sensor.type.toLowerCase() === 'co2') { %>
+                      <i class="fas fa-cloud"></i>
+                    <% } else if (sensor.type.toLowerCase() === 'humidity') { %>
+                      <i class="fas fa-tint"></i>
+                    <% } else if (sensor.type.toLowerCase() === 'light') { %>
+                      <i class="fas fa-lightbulb"></i>
+                    <% } else if (sensor.type.toLowerCase() === 'pir') { %>
+                      <i class="fas fa-eye"></i>
+                    <% } else if (sensor.type.toLowerCase() === 'temperature') { %>
+                      <i class="fas fa-thermometer-half"></i>
+                    <% } else { %>
+                      <i class="fas fa-question-circle"></i> <!-- Fallback icon -->
+                    <% } %>
+                  </div>
+                  <h3><%= sensor.type %></h3>
+                  <p>
+                    avg: <%= sensor.value %>
+                    <% if (sensor.type.toLowerCase() === 'co2') { %>
+                      ppm
+                    <% } else if (sensor.type.toLowerCase() === 'humidity') { %>
+                      %
+                    <% } else if (sensor.type.toLowerCase() === 'light') { %>
+                      lx
+                    <% } else if (sensor.type.toLowerCase() === 'pir') { %>
+                      detections
+                    <% } else if (sensor.type.toLowerCase() === 'temperature') { %>
+                      °C
+                    <% } %>
+                  </p>
+                </div>
+              <% }); %>
             </div>
+            
 
             <!-- Sensor Averages Graph Section -->
             
@@ -141,6 +142,8 @@
 
         </div>
     </div>
+
+    
 
     <script src="/js/frontend.js"></script>
     <script>
