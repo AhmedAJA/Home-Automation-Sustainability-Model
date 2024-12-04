@@ -45,6 +45,20 @@
         </section>
     </div>
 
+    <!-- JavaScript for Alerts -->
+    <script>
+        // Check for query parameters and display an alert
+        const params = new URLSearchParams(window.location.search);
+        const error = params.get('error');
+        const success = params.get('success');
+
+        if (error) {
+            alert(decodeURIComponent(error)); // Show error message
+        } else if (success) {
+            alert(decodeURIComponent(success)); // Show success message
+        }
+    </script>
+
     <script src="/js/frontend.js"></script>
 </body>
 </html>

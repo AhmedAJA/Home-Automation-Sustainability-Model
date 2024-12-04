@@ -492,7 +492,7 @@ ${JSON.stringify(inputData)}
             { role: "system", content: "You are an energy optimization expert." },
             { role: "user", content: prompt },
           ],
-          max_tokens: 1000,
+          max_tokens: 700,
           temperature: 0.9,
         });
 
@@ -809,46 +809,37 @@ app.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Validate input
     if (!email || !password) {
-      return res.status(400).send('Both email and password are required.');
+      return res.redirect(`/login?error=${encodeURIComponent('Both email and password are required.')}`);
     }
 
-    // Query the database for the user by email
     const query = `SELECT id, name, password FROM users WHERE email = ?`;
     db.query(query, [email], async (err, results) => {
       if (err) {
         console.error('Error during login query:', err);
-        return res.status(500).send('Internal server error.');
+        return res.redirect(`/login?error=${encodeURIComponent('Internal server error.')}`);
       }
 
       if (results.length === 0) {
-        // If no user is found
-        return res.status(401).send('Invalid email or password.');
+        return res.redirect(`/login?error=${encodeURIComponent('Invalid email or password.')}`);
       }
 
       const user = results[0];
-
-      // Compare the hashed password
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        return res.status(401).send('Invalid email or password.');
+        return res.redirect(`/login?error=${encodeURIComponent('Invalid email or password.')}`);
       }
 
-      // Save user details in session (ensure session middleware is configured)
       req.session.userId = user.id;
       req.session.userName = user.name;
-
-      console.log(`User ${user.name} (ID: ${user.id}) logged in successfully.`);
-
-      // Redirect to the dashboard after successful login
       res.redirect('/dashboard');
     });
   } catch (error) {
     console.error('Error during login:', error);
-    res.status(500).send('Internal server error.');
+    res.redirect(`/login?error=${encodeURIComponent('Internal server error.')}`);
   }
 });
+
 
 // Contact Route
 app.get('/contact', (req, res) => {

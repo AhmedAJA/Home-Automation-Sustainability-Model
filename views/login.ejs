@@ -21,7 +21,7 @@
             <li><a href="/login"><i class="fas fa-user"></i> Login</a></li>
             <li><a href="/about"><i class="fas fa-info-circle"></i> About Us</a></li>
             <li><a href="/contact"><i class="fas fa-envelope"></i> Contact Us</a></li>
-          </ul>
+        </ul>
     </div>
 
     <!-- Hamburger menu -->
@@ -44,7 +44,16 @@
         </section>
     </div>
 
+    <!-- JavaScript for alert -->
+    <script>
+        // Check for query parameters and display an alert
+        const params = new URLSearchParams(window.location.search);
+        const error = params.get('error');
+        if (error) {
+            alert(decodeURIComponent(error));
+        }
+    </script>
+
     <script src="/js/frontend.js"></script>
 </body>
 </html>
-    
