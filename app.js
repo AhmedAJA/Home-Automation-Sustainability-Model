@@ -414,7 +414,7 @@ app.post('/notifications/generate', async (req, res) => {
           )
           SELECT RoomNumber, Value, ReadingType, Time
           FROM RankedData
-          WHERE RowNum <= 32;
+          WHERE RowNum <= 20;
       `;
 
     db.query(query, [userId], async (err, results) => {
@@ -446,7 +446,8 @@ app.post('/notifications/generate', async (req, res) => {
       console.log("Sending data to OpenAI...");
 
 const prompt = `
-You are an expert in energy and environment optimization, specializing in creative, actionable advice for home automation systems. Your task is to analyze the provided room sensor data and generate highly innovative, practical, and varied energy-saving recommendations.
+You are an expert in energy and environment optimization, specializing in creative, actionable advice for 
+home automation systems. Your task is to analyze the provided room sensor data and generate highly innovative, practical, and varied energy-saving recommendations.
 
 ### Objective:
 Provide specific and diverse advice tailored to each room. The advice should leverage sensor readings (e.g., temperature, CO2 levels, humidity) and suggest creative actions using home automation technologies.
